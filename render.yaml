@@ -1,0 +1,46 @@
+services:
+  # Frontend SPA
+  - type: web
+    name: phong-thuy-so-frontend
+    env: static
+    buildCommand: cd phong_thuy_so_frontend && npm install && npm run build
+    staticPublishPath: ./phong_thuy_so_frontend/dist
+    pullRequestPreviewsEnabled: true
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: max-age=0, must-revalidate
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://api-phong-thuy-so.onrender.com
+      - key: VITE_ADK_BASE_URL
+        value: https://adk-backend.onrender.com
+  
+  # Backend API
+  - type: web
+    name: phong-thuy-so-api
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ADK_API_KEY
+        sync: false
+  
+  # Landing Page: BatCucLinhSo
+  - type: web
+    name: bat-cuc-linh-so-landing
+    env: static
+    buildCommand: cd phong_thuy_so_frontend && npm install && npm run build:landing-bat-cuc
+    staticPublishPath: ./phong_thuy_so_frontend/dist/landing/bat-cuc-linh-so
+    domain: bat-cuc-linh-so.phongthuyso.vn 

@@ -1,0 +1,456 @@
+# PRD: Kiến trúc đa tác tử (Multi-Agent) cho Phong Thủy Số
+
+## Tổng quan
+
+Tài liệu này mô tả chi tiết thiết kế và triển khai kiến trúc đa tác tử (multi-agent) cho ứng dụng Phong Thủy Số, sử dụng Google Agent Development Kit (ADK) để tăng cường khả năng phân tích và tương tác của hệ thống.
+
+## Mục tiêu
+
+1. **Nâng cao trải nghiệm người dùng**:
+   - Tạo hệ thống trò chuyện thông minh và trực quan
+   - Hỗ trợ nhiều loại input (văn bản, hình ảnh, giọng nói)
+   - Cung cấp phân tích sâu và toàn diện về số học phong thủy
+
+2. **Cải thiện kiến trúc hệ thống**:
+   - Chuyển từ kiến trúc monolithic sang kiến trúc microservices dựa trên agents
+   - Tăng khả năng mở rộng và linh hoạt của hệ thống
+   - Cải thiện hiệu suất và độ tin cậy
+
+3. **Mở rộng chức năng**:
+   - Hỗ trợ phân tích nhiều loại số (điện thoại, CCCD, STK ngân hàng, mật khẩu)
+   - Tích hợp thanh toán và quản lý người dùng
+   - Hỗ trợ việc tạo API keys để tích hợp với các website khác
+
+## Kiến trúc
+
+### Tổng quan kiến trúc
+
+Hệ thống sẽ sử dụng kiến trúc hybrid gồm:
+1. **Backend Node.js**: API Gateway, quản lý DB, và xử lý business logic hiện có
+2. **Backend Python với ADK**: Triển khai các agent thông minh sử dụng Google ADK
+
+```
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐
+│   Frontend  │────▶│  API Gateway │────▶│  ADK Agents   │
+│   (Vue.js)  │◀────│   (Node.js)  │◀────│   (Python)    │
+└─────────────┘     └──────────────┘     └───────────────┘
+                           │                     │
+                           ▼                     ▼
+                    ┌──────────────┐     ┌───────────────┐
+                    │   Database   │     │ Model Context │
+                    │  (MongoDB)   │     │   Protocol    │
+                    └──────────────┘     └───────────────┘
+```
+
+### Hệ thống Agents
+
+Hệ thống sẽ triển khai một kiến trúc đa tác tử gồm:
+
+1. **Root Agent**
+   - **Mục đích**: Đóng vai trò như một điều phối viên chính, phân tích ý định của người dùng và chuyển hướng đến các agent chuyên biệt
+   - **Khả năng**: Hiểu ngôn ngữ tự nhiên, quản lý luồng hội thoại, duy trì context
+   - **Tương tác**: Giao tiếp trực tiếp với người dùng và các agent khác
+
+2. **BatCucLinhSo Agent**
+   - **Mục đích**: Chuyên phân tích số điện thoại, CCCD, STK ngân hàng theo phương pháp Bát Cục Linh Số
+   - **Khả năng**: Phân tích chi tiết, đưa ra lời khuyên, giải thích ý nghĩa
+   - **Tools**: Phân tích số điện thoại, phân tích CCCD, phân tích STK, đánh giá mật khẩu
+
+3. **Payment Agent**
+   - **Mục đích**: Xử lý các giao dịch thanh toán
+   - **Khả năng**: Thanh toán, nâng cấp tài khoản, kiểm tra quota
+   - **Tools**: Xử lý thanh toán, quản lý subscription, kiểm tra hạn mức
+
+4. **User Agent**
+   - **Mục đích**: Quản lý thông tin người dùng
+   - **Khả năng**: Đăng ký, đăng nhập, cập nhật profile, quản lý API keys
+   - **Tools**: Quản lý tài khoản, tạo API key, xem lịch sử
+
+### Giao tiếp giữa các Agents
+
+Hệ thống sẽ sử dụng Agent-to-Agent (A2A) Protocol của Google ADK để cho phép các agent giao tiếp với nhau:
+
+```
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐
+│  Root Agent │────▶│ BatCucLinhSo │────▶│     Tasks     │
+│             │◀────│     Agent    │◀────│               │
+└─────────────┘     └──────────────┘     └───────────────┘
+       │                   │                     │
+       │                   │                     │
+       ▼                   ▼                     ▼
+┌─────────────┐     ┌──────────────┐     ┌───────────────┐
+│   Messages  │────▶│   Artifacts  │────▶│   Resources   │
+│             │◀────│              │◀────│               │
+└─────────────┘     └──────────────┘     └───────────────┘
+```
+
+Các thành phần chính:
+
+1. **Tasks**: Đại diện cho các nhiệm vụ cần hoàn thành
+2. **Messages**: Giao tiếp giữa các agent
+3. **Artifacts**: Dữ liệu chia sẻ giữa các agent
+4. **Resources**: Tài nguyên được quản lý bởi Model Context Protocol (MCP)
+
+### Model Context Protocol (MCP)
+
+MCP sẽ được triển khai để quản lý tập trung các prompt, cấu hình mô hình và resources:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   MCP Server                            │
+├─────────────┬──────────────┬───────────────────────────┤
+│  Templates  │  Parameters  │         Resources         │
+├─────────────┼──────────────┼───────────────────────────┤
+│ Root Agent  │ Root Agent   │ - Base Prompts           │
+│ Prompts     │ Config       │ - System Instructions     │
+├─────────────┼──────────────┼───────────────────────────┤
+│ BatCucLinhSo│ BatCucLinhSo │ - Phone Analysis Rules   │
+│ Prompts     │ Config       │ - CCCD Analysis Data     │
+├─────────────┼──────────────┼───────────────────────────┤
+│ Payment     │ Payment      │ - Payment Instructions   │
+│ Prompts     │ Config       │ - Plan Details           │
+├─────────────┼──────────────┼───────────────────────────┤
+│ User Agent  │ User Agent   │ - Account Management     │
+│ Prompts     │ Config       │ - API Key Instructions   │
+└─────────────┴──────────────┴───────────────────────────┘
+```
+
+## Chức năng chi tiết
+
+### 1. Root Agent
+
+**Chức năng chính**:
+- Xử lý input từ người dùng (văn bản, giọng nói, hình ảnh)
+- Phân tích ý định của người dùng
+- Điều phối luồng hội thoại và chuyển đến agent thích hợp
+- Quản lý context của cuộc trò chuyện
+- Tổng hợp phản hồi từ các agent khác
+
+**Tools**:
+- `IntentClassifier`: Phân loại ý định người dùng
+- `ConversationManager`: Quản lý luồng trò chuyện
+- `ContextTracker`: Theo dõi và duy trì context
+- `AgentRouter`: Chuyển hướng đến agent phù hợp
+
+### 2. BatCucLinhSo Agent
+
+**Chức năng chính**:
+- Phân tích số điện thoại theo phương pháp Bát Cục Linh Số
+- Phân tích số CCCD theo quy tắc phong thủy
+- Đánh giá STK ngân hàng
+- Phân tích và đề xuất cải thiện mật khẩu
+- Giải thích ý nghĩa và đưa ra lời khuyên
+
+**Tools**:
+- `PhoneAnalyzer`: Phân tích số điện thoại
+- `CCCDAnalyzer`: Phân tích số CCCD
+- `BankAccountAnalyzer`: Phân tích STK ngân hàng
+- `PasswordAnalyzer`: Đánh giá mật khẩu
+- `RecommendationEngine`: Đưa ra lời khuyên
+
+### 3. Payment Agent
+
+**Chức năng chính**:
+- Xử lý các giao dịch thanh toán
+- Quản lý subscription và plan
+- Kiểm tra và cập nhật quota
+- Thông báo về tình trạng thanh toán
+
+**Tools**:
+- `PaymentProcessor`: Xử lý thanh toán
+- `SubscriptionManager`: Quản lý gói dịch vụ
+- `QuotaChecker`: Kiểm tra hạn mức
+- `NotificationSender`: Gửi thông báo
+
+### 4. User Agent
+
+**Chức năng chính**:
+- Quản lý thông tin tài khoản người dùng
+- Xử lý đăng ký và đăng nhập
+- Quản lý API keys
+- Theo dõi lịch sử người dùng
+
+**Tools**:
+- `AccountManager`: Quản lý tài khoản
+- `ApiKeyGenerator`: Tạo và quản lý API keys
+- `HistoryTracker`: Theo dõi lịch sử
+- `PreferenceManager`: Quản lý tùy chọn
+
+## API Gateway
+
+API Gateway sẽ đóng vai trò trung gian giữa frontend và hệ thống agents:
+
+1. **Authentication và Authorization**:
+   - Xác thực người dùng
+   - Phân quyền truy cập
+   - Quản lý JWT
+
+2. **Quota Management**:
+   - Kiểm tra hạn mức người dùng
+   - Theo dõi sử dụng API
+   - Giới hạn tốc độ truy cập
+
+3. **Request Routing**:
+   - Chuyển hướng requests đến Python ADK service
+   - Xử lý endpoints phiên bản cũ (v1)
+   - Cung cấp endpoints mới (v2) cho ADK
+
+4. **Response Streaming**:
+   - Hỗ trợ Server-Sent Events (SSE)
+   - Streaming phản hồi từ agents
+
+5. **Error Handling**:
+   - Xử lý lỗi thống nhất
+   - Logging và monitoring
+
+## Endpoint API v2
+
+```
+/api/v2/chat
+  POST: Gửi tin nhắn tới hệ thống agents
+  GET: Nhận phản hồi từ agents (Streaming)
+
+/api/v2/upload
+  POST: Upload file (hình ảnh, PDF, âm thanh)
+
+/api/v2/user
+  GET: Lấy thông tin người dùng
+  POST: Tạo tài khoản mới
+  PUT: Cập nhật thông tin
+
+/api/v2/payment
+  GET: Kiểm tra trạng thái thanh toán
+  POST: Khởi tạo thanh toán
+
+/api/v2/apikeys
+  GET: Lấy danh sách API keys
+  POST: Tạo API key mới
+  DELETE: Xóa API key
+
+/api/v2/analysis
+  GET: Lấy lịch sử phân tích
+  POST: Yêu cầu phân tích mới
+```
+
+## Session Management
+
+Hệ thống sẽ triển khai hai loại session service:
+
+1. **InMemorySessionService**: Sử dụng cho môi trường phát triển
+   - Lưu trữ session in-memory
+   - Không lưu trữ lâu dài
+
+2. **MongoDBSessionService**: Sử dụng cho môi trường production
+   - Lưu trữ session trong MongoDB
+   - Hỗ trợ persistence và scale-out
+
+**Cấu trúc Session**:
+```json
+{
+  "sessionId": "string",
+  "userId": "string",
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp",
+  "expiresAt": "timestamp",
+  "context": {
+    "conversationHistory": [...],
+    "userPreferences": {...},
+    "lastAnalysis": {...}
+  },
+  "state": {
+    "currentAgent": "string",
+    "currentTask": "string",
+    "pendingActions": [...]
+  }
+}
+```
+
+## Câu trả lời mẫu
+
+Hệ thống sẽ có khả năng cung cấp các loại phân tích sau:
+
+### Phân tích số điện thoại
+
+```
+Số điện thoại: 0912.345.678
+
+Phân tích:
+- Năm sinh (Lộ): 9 (1+2+3+4+5=15, 1+5=6)
+- Phân tích theo Bát Cục Linh Số:
+  * Cặp số 91: Mệnh có Phúc, vận khí tốt
+  * Cặp số 23: Hoạnh tài, may mắn về tiền bạc
+  * Cặp số 45: Hỗ trợ công việc, sự nghiệp phát triển
+  * Cặp số 67: Tình cảm thuận lợi, hạnh phúc gia đình
+  * Cặp số 78: Sức khỏe tốt, tránh được bệnh tật
+
+Đánh giá: ★★★★☆ (4/5)
+- Ưu điểm: Số điện thoại có năng lượng tích cực, hỗ trợ cho sự nghiệp và tài lộc.
+- Hạn chế: Thiếu yếu tố hỗ trợ học vấn và phát triển bản thân.
+
+Lời khuyên: Số điện thoại này phù hợp với người làm kinh doanh, tài chính.
+```
+
+### Phân tích CCCD
+
+```
+Số CCCD: 001202012345
+
+Phân tích:
+- Mã tỉnh/thành: 001 (Hà Nội)
+- Mã giới tính và năm sinh: 2 (Nữ, sinh 2002)
+- Số ngẫu nhiên: 012345
+
+Phân tích theo Bát Cục Linh Số:
+- Tổng: 1+2+0+2+0+1+2+3+4+5=20 => 2+0=2 (Số 2 - Thổ)
+- Cặp số 00: Thể hiện sự chăm chỉ, kiên nhẫn
+- Cặp số 12: Thông minh, sáng tạo
+- Cặp số 02: Khả năng hòa đồng tốt
+- Cặp số 01: Người tiên phong, dám nghĩ dám làm
+
+Đánh giá: ★★★★★ (5/5)
+- Ưu điểm: Số CCCD này mang đến may mắn về học vấn và sự nghiệp.
+- Tương thích nghề nghiệp: Giáo dục, nghiên cứu, tư vấn.
+
+Lời khuyên: Số CCCD này rất tốt, không cần thay đổi.
+```
+
+### Phân tích STK ngân hàng
+
+```
+Số tài khoản: 1903 2468 1357
+
+Phân tích:
+- Tổng: 1+9+0+3+2+4+6+8+1+3+5+7=49 => 4+9=13 => 1+3=4 (Số 4 - Hỏa)
+- Cặp số 19: Vượng Tài, thuận lợi về tiền bạc
+- Cặp số 03: Phát triển bền vững
+- Cặp số 24: Ổn định và tăng trưởng
+- Cặp số 68: Phát tài, phát lộc
+- Cặp số 13: Khởi đầu mới mẻ
+- Cặp số 57: Biến đổi tích cực
+
+Đánh giá: ★★★★★ (5/5)
+- Ưu điểm: Số tài khoản có tính chất thu hút tài lộc rất mạnh.
+- Đặc điểm: Thích hợp cho tài khoản tiết kiệm và đầu tư.
+
+Lời khuyên: Nên sử dụng số tài khoản này cho mục đích tiết kiệm và đầu tư dài hạn.
+```
+
+## Yêu cầu kỹ thuật
+
+### Frontend (Vue.js)
+
+- **Vue.js 3**: Framework chính
+- **Vuex/Pinia**: State management
+- **Vue Router**: Client-side routing
+- **Axios**: HTTP client
+- **Socket.io-client**: Real-time communication
+- **Speech-to-Text API**: Chuyển đổi giọng nói sang văn bản
+- **SSE (Server-Sent Events)**: Streaming phản hồi
+
+### Backend Node.js
+
+- **Express.js**: Web framework
+- **MongoDB**: Database
+- **Mongoose**: ODM cho MongoDB
+- **JWT**: Authentication
+- **Axios**: Giao tiếp với Python service
+- **Socket.io**: Real-time communication
+- **Multer**: File upload handling
+- **Redis**: Caching và session
+- **Winston**: Logging
+
+### Backend Python (ADK)
+
+- **Google ADK**: Agent Development Kit
+- **FastAPI**: Web framework
+- **Uvicorn**: ASGI server
+- **Pydantic**: Data validation
+- **Motor**: Async MongoDB driver
+- **aiohttp**: Async HTTP client
+- **Langchain**: LLM utilities
+- **Pillow**: Xử lý hình ảnh
+- **PyTorch**: Machine learning
+
+### DevOps
+
+- **Docker**: Containerization
+- **Docker Compose**: Development environment
+- **Kubernetes**: Production environment
+- **GitHub Actions**: CI/CD
+- **Prometheus/Grafana**: Monitoring
+- **ELK Stack**: Logging
+- **Google Cloud Run**: Serverless deployment
+
+## Triển khai
+
+### Giai đoạn 1: Setup môi trường (Tuần 1-2)
+
+- Cài đặt Google ADK
+- Tạo các service cơ bản
+- Triển khai MCP server
+- Thiết lập CI/CD pipeline
+
+### Giai đoạn 2: Phát triển Root Agent (Tuần 3-4)
+
+- Triển khai Root Agent
+- Tích hợp với API Gateway
+- Xây dựng cơ chế routing
+- Thiết lập conversation management
+
+### Giai đoạn 3: Phát triển BatCucLinhSo Agent (Tuần 5-7)
+
+- Triển khai BatCucLinhSo Agent
+- Phát triển các tools phân tích
+- Tích hợp với Root Agent
+- Triển khai testing và evaluation
+
+### Giai đoạn 4: Phát triển User và Payment Agents (Tuần 8-10)
+
+- Triển khai User Agent
+- Triển khai Payment Agent
+- Tích hợp với Root Agent
+- Kiểm thử end-to-end
+
+### Giai đoạn 5: Testing và Optimization (Tuần 11-12)
+
+- End-to-end testing
+- Performance optimization
+- Security testing
+- Beta deployment
+
+## Đánh giá và KPIs
+
+### User Experience KPIs
+
+- **Satisfaction Score**: > 4.5/5.0
+- **Response Time**: < 2 giây cho 95% truy vấn
+- **Conversation Success Rate**: > 90%
+- **Error Rate**: < 5%
+
+### Technical KPIs
+
+- **Agent Accuracy**: > 95% cho phân tích số
+- **API Response Time**: < 500ms
+- **System Uptime**: > 99.9%
+- **Resource Utilization**: < 70% CPU/Memory
+
+### Business KPIs
+
+- **Conversion Rate**: > 5% miễn phí -> trả phí
+- **User Retention**: > 70% sau 30 ngày
+- **Average Revenue Per User**: Tăng 20%
+- **API Usage**: > 100K calls/tháng
+
+## Rủi ro và biện pháp giảm thiểu
+
+| Rủi ro | Mức độ | Tác động | Biện pháp giảm thiểu |
+|--------|--------|----------|----------------------|
+| Độ chính xác của Agent | Cao | Cao | Extensive testing, Human-in-the-loop evaluation |
+| Tốc độ phản hồi | Trung bình | Cao | Caching, Async processing, Response streaming |
+| Tích hợp giữa Node.js và Python | Cao | Trung bình | API contract testing, Monitoring |
+| Bảo mật dữ liệu | Cao | Cao | Encryption, Access control, Audit trails |
+| Chi phí vận hành | Trung bình | Trung bình | Resource optimization, Caching, Rate limiting |
+
+## Kết luận
+
+Kiến trúc đa tác tử (multi-agent) sử dụng Google ADK sẽ nâng cao đáng kể khả năng của ứng dụng Phong Thủy Số, mang lại trải nghiệm người dùng tốt hơn, và tạo nền tảng cho việc mở rộng chức năng trong tương lai. Việc tích hợp A2A Protocol và MCP cung cấp một kiến trúc linh hoạt và dễ bảo trì, trong khi API Gateway đảm bảo kết nối mượt mà giữa frontend và hệ thống backend.

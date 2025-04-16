@@ -1,140 +1,275 @@
-# Cấu Trúc Thư Mục - Phong Thủy Số (Kiến trúc Agent)
+# Cấu trúc thư mục dự án Phong Thủy Số
 
-Dưới đây là cấu trúc thư mục được đề xuất cho dự án Phong Thủy Số dựa trên kiến trúc agent:
+Dự án Phong Thủy Số được tổ chức thành hai phần chính:
+1. **Backend Node.js**: Đảm nhiệm vai trò API Gateway, kết nối database, và xử lý business logic
+2. **Backend Python**: Sử dụng Google ADK để triển khai kiến trúc đa tác tử (multi-agent)
 
 ```
-/phongthuybotbackend/
+phong_thuy_so/
 │
-├── /agents/                          # Thư mục chứa tất cả các agent
-│   ├── /root-agent/                  # Root Agent - điều phối chính
-│   │   ├── index.js                  # Entry point cho Root Agent  
-│   │   ├── agent-card.json           # Agent Card theo A2A Protocol
-│   │   ├── router.js                 # Bộ định tuyến yêu cầu
-│   │   └── /services/                # Các dịch vụ của Root Agent
-│   │   
-│   ├── /bat-cuc-linh-so/             # Agent phân tích phong thủy số học
-│   │   ├── index.js                  # Entry point cho BatCucLinhSo Agent
-│   │   ├── agent-card.json           # Agent Card theo A2A Protocol
-│   │   └── /tools/                   # Các công cụ của agent
-│   │       ├── phone-analysis.js     # Công cụ phân tích số điện thoại
-│   │       ├── phone-recommend.js    # Công cụ đề xuất số điện thoại
-│   │       ├── cccd-analysis.js      # Công cụ phân tích CCCD
-│   │       ├── bank-account.js       # Công cụ phong thủy tài khoản ngân hàng
-│   │       └── password.js           # Công cụ phong thủy mật khẩu
-│   │   
-│   ├── /payment/                     # Agent quản lý thanh toán
-│   │   ├── index.js                  # Entry point cho Payment Agent
-│   │   ├── agent-card.json           # Agent Card theo A2A Protocol
-│   │   └── /tools/                   # Các công cụ của agent
-│   │       ├── quota-check.js        # Công cụ kiểm tra quota
-│   │       ├── payment-processing.js # Công cụ xử lý thanh toán
-│   │       └── payment-history.js    # Công cụ quản lý lịch sử thanh toán
-│   │   
-│   ├── /user/                        # Agent quản lý người dùng
-│   │   ├── index.js                  # Entry point cho User Agent
-│   │   ├── agent-card.json           # Agent Card theo A2A Protocol
-│   │   └── /tools/                   # Các công cụ của agent
-│   │       ├── authentication.js     # Công cụ xác thực
-│   │       ├── profile-management.js # Công cụ quản lý hồ sơ
-│   │       └── history.js            # Công cụ quản lý lịch sử
-│   │   
-│   └── /chatbot/                     # Agent trò chuyện
-│       ├── index.js                  # Entry point cho Chatbot Agent
-│       ├── agent-card.json           # Agent Card theo A2A Protocol
-│       └── /tools/                   # Các công cụ của agent
-│           ├── llm.js                # Công cụ tương tác với LLM
-│           ├── conversation-memory.js # Công cụ quản lý bộ nhớ hội thoại
-│           └── agent-delegation.js   # Công cụ chuyển giao nhiệm vụ
-│
-├── /models/                          # Định nghĩa schema MongoDB
-│   ├── User.js                       # Model người dùng
-│   ├── Analysis.js                   # Model phân tích
-│   ├── Payment.js                    # Model thanh toán
-│   ├── Conversation.js               # Model hội thoại
-│   └── AgentState.js                 # Model lưu trữ trạng thái agent
-│
-├── /api/                             # API Endpoints
-│   ├── /v1/                          # API v1 (kiến trúc cũ)
-│   │   ├── routes.js                 # Định nghĩa routes
-│   │   └── /controllers/             # Controllers
+├── node_backend/                   # Backend Node.js
+│   ├── server.js                   # Entry point của Node.js server
+│   ├── config/                     # Cấu hình ứng dụng
+│   │   ├── database.js             # Cấu hình database
+│   │   ├── auth.js                 # Cấu hình authentication
+│   │   └── environments/           # Cấu hình môi trường (dev, prod)
 │   │
-│   └── /v2/                          # API v2 (kiến trúc agent)
-│       ├── gateway.js                # API Gateway
-│       ├── routes.js                 # Định nghĩa routes
-│       └── /controllers/             # Controllers
-│
-├── /services/                        # Các dịch vụ dùng chung
-│   ├── database.js                   # Kết nối cơ sở dữ liệu
-│   ├── cache.js                      # Dịch vụ cache (Redis)
-│   ├── logger.js                     # Dịch vụ ghi log
-│   ├── gemini.js                     # Kết nối Google Gemini API
-│   └── a2a-protocol.js               # Triển khai A2A Protocol
-│
-├── /tools/                           # Công cụ dùng chung giữa các agent
-│   ├── bat-cuc-linh-so-helpers.js    # Helpers cho Bát Cực Linh Số
-│   ├── agent-transfer.js             # Tool chuyển giao giữa các agent
-│   └── jwt-auth.js                   # Tool xác thực JWT
-│
-├── /utils/                           # Các tiện ích
-│   ├── constants.js                  # Hằng số
-│   ├── validators.js                 # Kiểm tra đầu vào
-│   ├── helpers.js                    # Hàm hỗ trợ
-│   └── errorHandlers.js              # Xử lý lỗi
-│
-├── /config/                          # Cấu hình
-│   ├── index.js                      # Cấu hình chính
-│   ├── agent-manager.js              # Quản lý agent
-│   └── env.js                        # Biến môi trường
-│
-├── /python/                          # Mã Python cho các agent AI
-│   ├── /bat_cuc_linh_so/             # Phong thủy số học Python
-│   │   ├── analysis.py               # Logic phân tích số
-│   │   └── generator.py              # Sinh số theo phong thủy
+│   ├── api/                        # API Gateway
+│   │   ├── middleware/             # Middleware cho API
+│   │   └── v1/                     # API routes phiên bản v1
+│   │       └── routes/             # Định nghĩa các routes
+│   │           ├── auth.routes.js
+│   │           ├── analysis.routes.js
+│   │           └── payment.routes.js
 │   │
-│   └── /chatbot/                     # Chatbot AI Python
-│       ├── llm_processor.py          # Xử lý LLM
-│       └── conversation.py           # Quản lý hội thoại
+│   ├── api/v2/                     # API routes phiên bản v2 (ADK)
+│   │   ├── routes/
+│   │   │   ├── chat.routes.js      # Endpoint cho chat với agents
+│   │   │   ├── upload.routes.js    # Endpoint cho upload files
+│   │   │   ├── user.routes.js      # Endpoint quản lý user
+│   │   │   ├── payment.routes.js   # Endpoint thanh toán
+│   │   │   └── apikeys.routes.js   # Endpoint quản lý API keys
+│   │   │
+│   │   └── middleware/
+│   │       ├── auth.middleware.js  # Xác thực
+│   │       ├── quota.middleware.js # Quản lý quota
+│   │       └── streaming.middleware.js # Hỗ trợ SSE
+│   │
+│   ├── controllers/                # Xử lý logic request/response
+│   │   ├── auth.controller.js
+│   │   ├── analysis.controller.js
+│   │   └── payment.controller.js
+│   │
+│   ├── models/                     # Mô hình dữ liệu
+│   │   ├── user.model.js
+│   │   ├── analysis.model.js
+│   │   └── payment.model.js
+│   │
+│   ├── services/                   # Business logic
+│   │   ├── database.js             # Kết nối database
+│   │   ├── analysisService.js      # Logic phân tích
+│   │   ├── geminiService.js        # Tích hợp với Google Gemini
+│   │   ├── a2a-protocol.js         # Định nghĩa A2A Protocol
+│   │   └── agents/                 # Tích hợp với agents
+│   │       ├── rootAgent.js        # Kết nối với Root Agent
+│   │       ├── batCucLinhSoAgent.js # Kết nối với BatCucLinhSo Agent
+│   │       ├── paymentAgent.js     # Kết nối với Payment Agent
+│   │       └── userAgent.js        # Kết nối với User Agent
+│   │
+│   └── utils/                      # Tiện ích
+│       ├── logger.js               # Logging
+│       ├── validators.js           # Xác thực input
+│       └── formatters.js           # Format dữ liệu
 │
-├── /docs/                            # Tài liệu
-│   ├── api.md                        # Tài liệu API
-│   ├── agent-architecture.md         # Tài liệu kiến trúc agent
-│   └── deployment.md                 # Hướng dẫn triển khai
+├── python_adk/                     # Backend Python với Google ADK
+│   ├── main.py                     # Entry point cho FastAPI server
+│   ├── config/                     # Cấu hình
+│   │   ├── config.py               # Cấu hình chung
+│   │   └── logging.py              # Cấu hình logging
+│   │
+│   ├── endpoints/                  # FastAPI endpoints
+│   │   ├── chat.py                 # Endpoint xử lý chat
+│   │   ├── tasks.py                # Endpoint quản lý tasks
+│   │   └── webhooks.py             # Webhooks cho events
+│   │
+│   ├── agents/                     # Định nghĩa agents
+│   │   ├── root_agent/             # Root Agent
+│   │   │   ├── agent.py            # Định nghĩa Root Agent
+│   │   │   ├── prompts.py          # Prompts cho Root Agent
+│   │   │   └── tools/              # Tools cho Root Agent
+│   │   │       ├── intent_classifier.py
+│   │   │       ├── conversation_manager.py
+│   │   │       ├── context_tracker.py
+│   │   │       └── agent_router.py
+│   │   │
+│   │   ├── batcuclinh_so_agent/    # BatCucLinhSo Agent
+│   │   │   ├── agent.py            # Định nghĩa BatCucLinhSo Agent
+│   │   │   ├── prompts.py          # Prompts cho BatCucLinhSo Agent
+│   │   │   └── tools/              # Tools cho BatCucLinhSo Agent
+│   │   │       ├── phone_analyzer.py
+│   │   │       ├── cccd_analyzer.py
+│   │   │       ├── bank_account_analyzer.py
+│   │   │       ├── password_analyzer.py
+│   │   │       └── recommendation_engine.py
+│   │   │
+│   │   ├── payment_agent/          # Payment Agent
+│   │   │   ├── agent.py            # Định nghĩa Payment Agent
+│   │   │   ├── prompts.py          # Prompts cho Payment Agent
+│   │   │   └── tools/              # Tools cho Payment Agent
+│   │   │       ├── payment_processor.py
+│   │   │       ├── subscription_manager.py
+│   │   │       ├── quota_checker.py
+│   │   │       └── notification_sender.py
+│   │   │
+│   │   └── user_agent/             # User Agent
+│   │       ├── agent.py            # Định nghĩa User Agent
+│   │       ├── prompts.py          # Prompts cho User Agent
+│   │       └── tools/              # Tools cho User Agent
+│   │           ├── account_manager.py
+│   │           ├── apikey_generator.py
+│   │           ├── history_tracker.py
+│   │           └── preference_manager.py
+│   │
+│   ├── a2a/                        # Agent-to-Agent Protocol
+│   │   ├── protocol.py             # Định nghĩa A2A Protocol
+│   │   ├── task.py                 # Quản lý tasks
+│   │   ├── message.py              # Quản lý messages
+│   │   └── artifact.py             # Quản lý artifacts
+│   │
+│   ├── mcp/                        # Model Context Protocol
+│   │   ├── server.py               # MCP Server
+│   │   ├── templates.py            # Quản lý templates
+│   │   ├── parameters.py           # Quản lý parameters
+│   │   └── resources.py            # Quản lý resources
+│   │
+│   ├── session/                    # Session Management
+│   │   ├── base.py                 # Base SessionService
+│   │   ├── memory_session.py       # InMemorySessionService
+│   │   └── mongo_session.py        # MongoDBSessionService
+│   │
+│   ├── callbacks/                  # Callbacks cho events
+│   │   ├── task_callbacks.py       # Callbacks cho tasks
+│   │   ├── message_callbacks.py    # Callbacks cho messages
+│   │   └── error_callbacks.py      # Callbacks cho errors
+│   │
+│   └── utils/                      # Tiện ích
+│       ├── logging_utils.py        # Logging utilities
+│       ├── validation.py           # Xác thực dữ liệu
+│       └── metrics.py              # Metrics tracking
 │
-├── /tests/                           # Kiểm thử
-│   ├── /unit/                        # Unit tests
-│   ├── /integration/                 # Integration tests
-│   └── /e2e/                         # End-to-end tests
-│
-├── app.js                            # Entry point ứng dụng
-├── server.js                         # Khởi động server
-├── package.json                      # Cấu hình npm
-├── package-lock.json                 # Lock file npm
-└── .env                              # Biến môi trường
+├── frontend/                       # Frontend (Vue.js)
+│   ├── public/                     # Static assets
+│   └── src/                        # Source code
+│       ├── assets/                 # Assets
+│       ├── components/             # Vue components
+│   │   └── views/                  # Vue views
+│   │       ├── router/                 # Vue Router
+│   │       ├── store/                  # Vuex/Pinia store
+│   │       ├── services/               # API services
+│   │       ├── utils/                  # Tiện ích
+│   │       ├── App.vue                 # Root component
+│   │       └── main.js                 # Entry point
+│   │
+│   ├── kubernetes/                     # Kubernetes configs
+│   │   ├── node-backend/               # Node.js service configs
+│   │   │   ├── deployment.yaml
+│   │   │   └── service.yaml
+│   │   │
+│   │   ├── python-adk/                 # Python ADK service configs
+│   │   │   ├── deployment.yaml
+│   │   │   └── service.yaml
+│   │   │
+│   │   ├── mongodb/                    # MongoDB configs
+│   │   │   ├── statefulset.yaml
+│   │   │   └── service.yaml
+│   │   │
+│   │   └── ingress.yaml                # Ingress config
+│   │
+│   ├── docker/                         # Docker configs
+│   │   ├── node-backend/               # Node.js Docker
+│   │   │   └── Dockerfile
+│   │   │
+│   │   ├── python-adk/                 # Python ADK Docker
+│   │   │   └── Dockerfile
+│   │   │
+│   │   └── docker-compose.yml          # Docker Compose config
+│   │
+│   ├── PRD/                            # Documentation
+│   │   ├── structure.md                # Cấu trúc thư mục (file này)
+│   │   ├── tasklog.md                  # Nhật ký công việc
+│   │   ├── implementation_plan.md      # Kế hoạch triển khai
+│   │   ├── multiAgentPrd.md            # PRD cho kiến trúc đa tác tử
+│   │   └── api_docs.md                 # Tài liệu API
+│   │
+│   ├── tests/                          # Tests
+│   │   ├── node_backend/               # Tests cho Node.js backend
+│   │   │   ├── unit/                   # Unit tests
+│   │   │   └── integration/            # Integration tests
+│   │   │
+│   │   └── python_adk/                 # Tests cho Python ADK
+│   │       ├── unit/                   # Unit tests
+│   │       └── integration/            # Integration tests
+│   │
+│   ├── .gitignore                      # Git ignore file
+│   │
+│   └── README.md                       # Readme
+│       └── package.json                # Node.js package
+└── requirements.txt                # Python requirements
 ```
 
-## Lưu ý về cấu trúc
+## Kiến trúc Agents sử dụng Google ADK
 
-### 1. Tổ chức theo Agent
-- Mỗi agent được đặt trong thư mục riêng với đầy đủ tools cần thiết
-- Mỗi agent đều có agent-card.json định nghĩa khả năng và giao diện tương tác
-- Root Agent đóng vai trò trung tâm điều phối
+Google Agent Development Kit (ADK) được tích hợp vào dự án để xây dựng hệ thống đa tác tử thông minh. Kiến trúc này gồm các thành phần chính:
 
-### 2. Phân chia Node.js và Python
-- Sử dụng Node.js cho backend API và các dịch vụ chính
-- Sử dụng Python cho các thành phần AI và xử lý dữ liệu phức tạp
-- Giao tiếp giữa Node.js và Python thông qua API hoặc message queue
+### 1. Agents
 
-### 3. Microservices
-- Mỗi agent có thể được triển khai như một microservice riêng biệt
-- Sử dụng API gateway để điều hướng yêu cầu đến agent phù hợp
-- Hỗ trợ khả năng mở rộng và cân bằng tải
+- **Root Agent**: Điều phối viên chính, nhận input từ người dùng, phân loại và chuyển hướng đến các agent chuyên biệt
+- **BatCucLinhSo Agent**: Chuyên phân tích số điện thoại, CCCD, STK ngân hàng theo phương pháp Bát Cục Linh Số
+- **Payment Agent**: Xử lý các giao dịch thanh toán và quản lý quota người dùng
+- **User Agent**: Quản lý thông tin người dùng và API keys
 
-### 4. Tích hợp A2A Protocol
-- Triển khai giao thức A2A cho giao tiếp giữa các agent
-- Sử dụng Task, Message và Artifact cho trao đổi dữ liệu
-- Hỗ trợ streaming và thông báo đẩy
+### 2. Agent-to-Agent (A2A) Protocol
 
-### 5. Hỗ trợ phiên bản cũ và mới
-- Duy trì cấu trúc API v1 cho tương thích ngược
-- Phát triển API v2 cho kiến trúc agent mới
-- Hỗ trợ di chuyển dần từ v1 sang v2 
+A2A Protocol cho phép các agent giao tiếp với nhau một cách chuẩn hóa thông qua:
+
+- **Tasks**: Đại diện cho các nhiệm vụ cần hoàn thành
+- **Messages**: Giao tiếp giữa các agent
+- **Artifacts**: Dữ liệu chia sẻ giữa các agent
+
+### 3. Model Context Protocol (MCP)
+
+MCP quản lý tài nguyên và cấu hình cho các agent:
+
+- **Templates**: Các mẫu prompt cho agents
+- **Parameters**: Cấu hình cho các mô hình LLM
+- **Resources**: Tài nguyên dùng chung (dữ liệu phân tích, hướng dẫn, v.v.)
+
+### 4. API Gateway
+
+API Gateway đóng vai trò trung gian giữa frontend và hệ thống agents, cung cấp:
+
+- **Authentication & Authorization**: Xác thực và phân quyền
+- **Quota Management**: Quản lý hạn mức sử dụng
+- **Request Routing**: Chuyển hướng requests đến các endpoints thích hợp
+- **Response Streaming**: Hỗ trợ Server-Sent Events (SSE)
+- **Error Handling**: Xử lý lỗi thống nhất
+
+### 5. Session Management
+
+Hệ thống quản lý session để duy trì context giữa các tương tác:
+
+- **InMemorySessionService**: Dùng cho môi trường phát triển
+- **MongoDBSessionService**: Dùng cho môi trường production
+
+## Chiến lược triển khai
+
+Dự án hỗ trợ nhiều phương thức triển khai:
+
+1. **Docker & Docker Compose**: Cho môi trường phát triển
+   ```
+   docker-compose up --build
+   ```
+
+2. **Kubernetes**: Cho môi trường production
+   ```
+   kubectl apply -f kubernetes/
+   ```
+
+3. **Google Cloud Run**: Cho triển khai serverless
+   ```
+   gcloud run deploy node-backend --source ./node_backend
+   gcloud run deploy python-adk --source ./python_adk
+   ```
+
+4. **Local Development**: Cho phát triển cục bộ
+   ```
+   # Terminal 1: Node.js backend
+   cd node_backend
+   npm install
+   npm run dev
+   
+   # Terminal 2: Python ADK
+   cd python_adk
+   pip install -r requirements.txt
+   uvicorn main:app --reload
+   ``` 
