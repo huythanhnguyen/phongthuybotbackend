@@ -98,11 +98,12 @@ Hệ thống được thiết kế dựa trên kiến trúc agent, với một R
 
 #### 3.1.1 Phân tích số điện thoại
 - **Mô tả**: Phân tích số điện thoại theo nguyên lý Bát Cực Linh Số
-- **Input**: Số điện thoại (10 chữ số)
+- **Input**: Số điện thoại (10-11 chữ số)
 - **Output**: Phân tích chi tiết từng cặp số, ý nghĩa phong thủy, mức độ phù hợp
 - **Yêu cầu kỹ thuật**:
   - Phân tích từng cặp số theo nguyên lý Bát Cực Linh Số
   - Xác định hung/cát tinh và mức độ ảnh hưởng
+   -xac định các yếu tố khác như combination, số thứ 1,3,5 từ bên phải...
   - Tính tổng điểm phong thủy của số điện thoại
   - Đưa ra đánh giá tổng thể và khuyến nghị
 
