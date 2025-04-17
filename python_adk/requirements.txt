@@ -1,5 +1,5 @@
 # Requirements for Google ADK and associated components
-agent-development-kit>=0.0.3
+git+https://github.com/google/adk-python.git
 fastapi>=0.109.0
 uvicorn>=0.15.0
 pydantic>=2.0.0
