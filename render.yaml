@@ -59,7 +59,7 @@ services:
       - key: PORT
         value: 10000
       - key: PYTHON_ADK_URL
-        value: http://localhost:8000
+        value: https://phongthuybotadk.onrender.com
       - key: ADK_API_KEY
         value: render_production_key
     healthCheckPath: /api/health
