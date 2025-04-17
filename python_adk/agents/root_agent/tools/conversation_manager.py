@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Optional
 import time
 
 # Google ADK imports
-from adk.core.tool import Tool
+from google.adk.core.tool import Tool
 
 
 class ConversationManager(Tool):

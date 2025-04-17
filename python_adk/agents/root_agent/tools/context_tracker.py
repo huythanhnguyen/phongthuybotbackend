@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 # Google ADK imports
-from adk.core.tool import Tool
+from google.adk.core.tool import Tool
 
 
 class ContextTracker(Tool):

@@ -10,7 +10,7 @@ from typing import Dict, Any, List, Optional
 from enum import Enum
 
 # Google ADK imports
-from adk.core.tool import Tool
+from google.adk.core.tool import Tool
 
 # Local imports
 from .intent_classifier import AgentType

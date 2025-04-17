@@ -10,7 +10,7 @@ import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
-from adk.core.tool import tool
+from google.adk.core.tool import tool
 import jwt
 import bcrypt
 from pymongo import MongoClient

@@ -11,9 +11,9 @@ from typing import Dict, Any, List, Optional
 import re
 
 # Google ADK imports
-from adk.core.agent import Agent
-from adk.core.agent_builder import AgentBuilder
-from adk.generators.llm import LLMGenerator
+from google.adk.core.agent import Agent
+from google.adk.core.agent_builder import AgentBuilder
+from google.adk.generators.llm import LLMGenerator
 
 # A2A Protocol imports
 from python_adk.a2a.protocol import Task, Message, Artifact, Part, TaskStatus, Role, PartType

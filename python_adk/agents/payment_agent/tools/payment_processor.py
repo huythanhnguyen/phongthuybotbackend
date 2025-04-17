@@ -11,7 +11,7 @@ from typing import Dict, Any, List
 from datetime import datetime, timedelta
 import uuid
 
-from adk.core.tool import tool
+from google.adk.core.tool import tool
 from pymongo import MongoClient
 from pymongo.collection import Collection
 
