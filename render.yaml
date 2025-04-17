@@ -70,11 +70,11 @@ services:
     env: python
     region: singapore
     plan: starter
-    buildCommand: pip install -r python_adk/requirements.txt
-    startCommand: cd /opt/render/project/src && uvicorn python_adk.asgi:application --host 0.0.0.0 --port 10000
+    buildCommand: pip install -r python_adk/requirements.txt && pip install google-adk google-generativeai git+https://github.com/google/adk-python.git
+    startCommand: cd /opt/render/project/src && python -m python_adk.setup_adk && export PYTHONPATH=$PYTHONPATH:/opt/render/project/src && uvicorn python_adk.asgi:application --host 0.0.0.0 --port 10000
     envVars:
       - key: PORT
-        value: 10000
+        value: 10000 
       - key: HOST
         value: 0.0.0.0
       - key: LOG_LEVEL

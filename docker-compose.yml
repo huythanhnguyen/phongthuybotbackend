@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  python-adk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "10000:10000"
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+      - API_KEY=dev_key
+      - API_KEY_HEADER=X-API-Key
+      - DEFAULT_MODEL=gemini-pro
+      - ROOT_AGENT_MODEL=gemini-pro
+      - BATCUCLINH_SO_AGENT_MODEL=gemini-pro
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    volumes:
+      - ./python_adk:/app/python_adk
+    restart: unless-stopped 
