@@ -1,496 +1,253 @@
-# Kế hoạch Triển khai Phong Thủy Số trên Render.com
+# Kế hoạch triển khai Phong Thủy Số trên Render
 
-## 1. Tổng quan kiến trúc
+## Tổng quan
 
-### 1.1. Kiến trúc tổng thể
-- **Frontend**: Vue.js SPA với nhiều landing page
-- **Backend**: Node.js API với kiến trúc Agent-based
-- **Triển khai**: Render.com Web Services và API Services
+Dự án "Phong Thủy Số" bao gồm hai thành phần chính cần triển khai:
 
-### 1.2. Phân chia dịch vụ
-- **Phong Thủy Số Frontend**: Web Service trên Render.com
-- **Phong Thủy Số Backend API**: API Service trên Render.com
-- **Landing Pages**: Static Sites trên Render.com
+1. **Node.js Backend** - Cung cấp API endpoints, xử lý requests, và kết nối với cơ sở dữ liệu
+2. **Python ADK Service** - Cung cấp các agent và công cụ phân tích sử dụng Google Agent Development Kit
 
-## 2. Triển khai Frontend
+Kế hoạch này mô tả cách triển khai cả hai thành phần trên Render.com.
 
-### 2.1. Ứng dụng chính (Vue SPA)
+## Chuẩn bị môi trường
 
-#### 2.1.1. Cấu hình Render.com
+### 1. Tạo tài khoản Render
+
+- Đăng ký tài khoản tại [Render](https://render.com)
+- Kết nối GitHub repository của dự án
+- Thiết lập phương thức thanh toán (nếu cần)
+
+### 2. Chuẩn bị repository
+
+- Đảm bảo repository chứa cả hai thành phần (Node.js và Python ADK)
+- Tạo file `render.yaml` để cấu hình triển khai
+- Tạo file `requirements.txt` cho Python ADK
+- Cập nhật `package.json` để bao gồm các dependencies cần thiết (như `uuid`)
+
+## Triển khai Node.js Backend
+
+### Cấu hình Web Service
+
+**Thông số cơ bản:**
+- **Name**: `phongthuybotbackend`
+- **Environment**: `Node.js`
+- **Region**: `Singapore (Southeast Asia)`
+- **Branch**: `main`
+- **Build Command**: `npm install && npm run build`
+- **Start Command**: `npm start`
+- **Plan**: `Starter ($7/month)` hoặc Free Plan (cho giai đoạn phát triển)
+
+**Cấu hình Node.js:**
+- Node version: 16.x hoặc mới hơn
+
+**Biến môi trường:**
+```
+NODE_ENV=production
+PORT=10000
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/phongthuybotdb
+PYTHON_ADK_URL=https://phongthuybotadk.onrender.com
+ADK_API_KEY=<secret_key>
+JWT_SECRET=<your_secret_key>
+JWT_EXPIRE=30d
+CLIENT_URL=https://phongthuyso.onrender.com
+GEMINI_API_KEY=<your_gemini_api_key>
+```
+
+### Cài đặt dependencies
+
+Đảm bảo `package.json` bao gồm các dependencies sau:
+```json
+{
+  "dependencies": {
+    "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.1",
+    "morgan": "^1.10.0",
+    "uuid": "^9.0.1"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "echo 'Build completed'"
+  }
+}
+```
+
+## Triển khai Python ADK Service
+
+### Cấu hình Web Service
+
+**Thông số cơ bản:**
+- **Name**: `phongthuybotadk`
+- **Environment**: `Python 3`
+- **Region**: `Singapore (Southeast Asia)`
+- **Branch**: `main`
+- **Build Command**: `pip install -r python_adk/requirements.txt`
+- **Start Command**: `cd python_adk && python main.py`
+- **Plan**: `Starter ($7/month)` hoặc Free Plan (cho giai đoạn phát triển)
+
+**Cấu hình Python:**
+- Python version: 3.9 hoặc mới hơn
+
+**Biến môi trường:**
+```
+PORT=10000
+HOST=0.0.0.0
+LOG_LEVEL=INFO
+API_KEY=<same_as_ADK_API_KEY_in_Node.js>
+API_KEY_HEADER=X-API-Key
+GOOGLE_API_KEY=<your_gemini_api_key>
+DEFAULT_MODEL=gemini-pro
+ROOT_AGENT_MODEL=gemini-pro
+BATCUCLINH_SO_AGENT_MODEL=gemini-pro
+PHONE_ANALYZER_MODEL=gemini-pro
+CCCD_ANALYZER_MODEL=gemini-pro
+```
+
+### Cài đặt Python dependencies
+
+Đảm bảo `python_adk/requirements.txt` bao gồm các dependencies sau:
+```
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.4.2
+google-generativeai==0.3.1
+adk==0.2.5
+requests==2.31.0
+python-dotenv==1.0.0
+pytest==7.4.3
+```
+
+## Tạo file render.yaml
+
+Tạo file `render.yaml` tại thư mục gốc của repository với nội dung sau:
+
 ```yaml
-# render.yaml cho Frontend
 services:
+  # Node.js Backend
   - type: web
-    name: phong-thuy-so-frontend
-    env: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    pullRequestPreviewsEnabled: true
-    headers:
-      - path: /*
-        name: Cache-Control
-        value: max-age=0, must-revalidate
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_API_BASE_URL
-        value: https://api-phong-thuy-so.onrender.com
-      - key: VITE_ADK_BASE_URL
-        value: https://adk-backend.onrender.com
-```
-
-#### 2.1.2. Tái sử dụng giao diện ADK
-- Tích hợp `AppView.vue` từ ADK framework
-- Tùy chỉnh theme và các component phù hợp với thương hiệu Phong Thủy Số
-- Giữ nguyên luồng UI và UX chính của ADK
-
-#### 2.1.3. Tùy chỉnh giao diện Chat
-```vue
-<!-- components/chat/ChatInterface.vue -->
-<template>
-  <div class="chat-container">
-    <chat-header :agent="currentAgent" />
-    
-    <!-- Hỗ trợ đa phương tiện -->
-    <chat-messages :messages="messages" />
-    
-    <chat-input 
-      @send-message="sendMessage"
-      @upload-file="uploadFile"
-      @record-voice="recordVoice"
-      :supports-voice="true"
-      :supports-files="true"
-      :supports-images="true"
-      :supports-video="true"
-      :supports-pdf="true"
-    />
-  </div>
-</template>
-```
-
-### 2.2. Landing Pages
-
-#### 2.2.1. Cấu trúc Landing Pages
-- **BatCucLinhSo Landing**: `/landing/bat-cuc-linh-so`
-- **Tương lai**: Các landing page cho các agent khác
-
-#### 2.2.2. Cấu hình Render.com cho Landing Pages
-```yaml
-# render.yaml cho Landing Pages
-services:
-  - type: web
-    name: bat-cuc-linh-so-landing
-    env: static
-    buildCommand: npm install && npm run build:landing-bat-cuc
-    staticPublishPath: ./dist/landing/bat-cuc-linh-so
-    domain: bat-cuc-linh-so.phongthuyso.vn
-```
-
-### 2.3. API Key Management UI
-
-```vue
-<!-- components/developer/ApiKeyManager.vue -->
-<template>
-  <div class="api-key-container">
-    <h2>Quản lý API Keys</h2>
-    
-    <!-- Hiển thị API keys hiện có -->
-    <api-key-list :keys="apiKeys" @revoke="revokeKey" />
-    
-    <!-- Form tạo API key mới -->
-    <api-key-create-form @create="createNewKey" />
-    
-    <!-- Hướng dẫn sử dụng API -->
-    <api-usage-guide />
-  </div>
-</template>
-```
-
-## 3. Triển khai Backend
-
-### 3.1. Kiến trúc Agent
-
-#### 3.1.1. Root Agent
-- Gateway cho tất cả các tương tác
-- Phân tích yêu cầu và điều hướng đến Expert Agents
-
-#### 3.1.2. Expert Agents
-- **BatCucLinhSo Agent**: Phân tích phong thủy số
-- **ChatAgent**: Xử lý trò chuyện thông thường
-- **FinanceAgent**: Tư vấn tài chính phong thủy
-- **LifestyleAgent**: Tư vấn lối sống theo phong thủy
-
-### 3.2. Cấu hình Render.com cho Backend
-
-```yaml
-# render.yaml cho Backend
-services:
-  - type: web
-    name: phong-thuy-so-api
+    name: phongthuybotbackend
     env: node
+    region: singapore
+    plan: starter
     buildCommand: npm install
-    startCommand: node server.js
-    healthCheckPath: /api/health
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
       - key: MONGODB_URI
+        sync: false
+      - key: PYTHON_ADK_URL
+        value: https://phongthuybotadk.onrender.com
+      - key: ADK_API_KEY
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: ADK_API_KEY
-        sync: false
+      - key: JWT_EXPIRE
+        value: 30d
+      - key: CLIENT_URL
+        value: https://phongthuyso.onrender.com
       - key: GEMINI_API_KEY
         sync: false
-```
 
-### 3.3. Hỗ trợ Đa phương tiện
-
-#### 3.3.1. Xử lý Tệp và Hình ảnh
-```javascript
-// agents/root-agent/multimedia-processor.js
-class MultimediaProcessor {
-  async processImage(imageBuffer) {
-    // Phân tích hình ảnh sử dụng ADK Vision API
-    return await adkVisionApi.analyze(imageBuffer);
-  }
-  
-  async processDocument(documentBuffer, mimeType) {
-    // Trích xuất văn bản từ PDF/Docs
-    return await adkDocumentApi.extractText(documentBuffer, mimeType);
-  }
-  
-  async processAudio(audioBuffer) {
-    // Chuyển speech-to-text
-    return await adkSpeechApi.transcribe(audioBuffer);
-  }
-  
-  async processVideo(videoBuffer) {
-    // Trích xuất frames và audio
-    return await adkVideoApi.analyze(videoBuffer);
-  }
-}
-```
-
-### 3.4. API Key Management
-
-```javascript
-// api/v1/routes/developer.js
-const router = express.Router();
-const { authenticate } = require('../middleware/auth');
-const apiKeyController = require('../controllers/apiKeyController');
-
-router.get('/api-keys', authenticate, apiKeyController.listApiKeys);
-router.post('/api-keys', authenticate, apiKeyController.createApiKey);
-router.delete('/api-keys/:id', authenticate, apiKeyController.revokeApiKey);
-router.get('/api-usage/:keyId', authenticate, apiKeyController.getApiUsage);
-
-module.exports = router;
-```
-
-## 4. Tích hợp ADK
-
-### 4.1. Frontend
-
-#### 4.1.1. Tích hợp ADK Components
-```javascript
-// main.js
-import { createApp } from 'vue';
-import App from './App.vue';
-import { ADKProvider, ADKComponents } from '@adk/vue-components';
-
-const app = createApp(App);
-
-app.use(ADKProvider, {
-  apiKey: import.meta.env.VITE_ADK_API_KEY,
-  baseUrl: import.meta.env.VITE_ADK_BASE_URL
-});
-
-app.use(ADKComponents);
-app.mount('#app');
-```
-
-#### 4.1.2. Tùy chỉnh giao diện ADK
-```scss
-// assets/scss/adk-overrides.scss
-:root {
-  --adk-primary-color: #4f46e5;
-  --adk-secondary-color: #f59e0b;
-  --adk-text-color: #1f2937;
-  --adk-background-color: #f9fafb;
-  --adk-border-radius: 0.5rem;
-}
-
-.adk-chat-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  
-  .adk-message-bubble {
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  }
-}
-```
-
-### 4.2. Backend
-
-#### 4.2.1. Tích hợp ADK Agents API
-```javascript
-// config/adk-config.js
-const { ADKClient } = require('@adk/node-client');
-
-const adkClient = new ADKClient({
-  apiKey: process.env.ADK_API_KEY,
-  baseUrl: process.env.ADK_BASE_URL
-});
-
-module.exports = {
-  adkClient,
-  agentConfig: {
-    rootAgent: {
-      name: 'PhongThuySoRoot',
-      capabilities: ['routing', 'user-context', 'multimedia']
-    },
-    expertAgents: {
-      batCucLinhSo: {
-        name: 'BatCucLinhSo',
-        capabilities: ['phone-analysis', 'cccd-analysis', 'bank-account', 'password']
-      },
-      chatAgent: {
-        name: 'PhongThuyChat',
-        capabilities: ['conversation', 'feng-shui-knowledge']
-      }
-      // Thêm các expert agents khác
-    }
-  }
-};
-```
-
-## 5. Landing Pages
-
-### 5.1. Cấu trúc giao diện Landing
-
-```
-/landing/
-├── /bat-cuc-linh-so/
-│   ├── index.html
-│   ├── assets/
-│   │   ├── components/
-│   │   │   ├── Hero.vue
-│   │   │   ├── Features.vue
-│   │   │   ├── Testimonials.vue
-│   │   │   ├── Pricing.vue
-│   │   │   └── CTASection.vue
-│   │   └── styles/
-├── /shared/
-│   ├── components/
-│   ├── styles/
-│   └── utils/
-└── /future-landing-pages/
-    └── ...
-```
-
-### 5.2. Xây dựng và triển khai
-
-```javascript
-// vite.config.js
-import { defineConfig } from 'vite';
-import vue from '@vitejs/plugin-vue';
-import { resolve } from 'path';
-
-export default defineConfig({
-  plugins: [vue()],
-  build: {
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-        batCucLinhSo: resolve(__dirname, 'landing/bat-cuc-linh-so/index.html'),
-        // Thêm các landing page khác trong tương lai
-      }
-    }
-  }
-});
-```
-
-## 6. API Embedding cho Website Khách hàng
-
-### 6.1. JavaScript SDK
-
-```javascript
-// public/sdk/phong-thuy-so-sdk.js
-(function(global) {
-  class PhongThuySoWidget {
-    constructor(options) {
-      this.apiKey = options.apiKey;
-      this.targetElement = options.targetElement;
-      this.theme = options.theme || 'light';
-      this.defaultAgent = options.defaultAgent || 'bat-cuc-linh-so';
-      
-      this.init();
-    }
-    
-    init() {
-      // Tạo iframe hoặc elements
-      this.createWidgetDOM();
-      // Thiết lập listeners
-      this.setupEventListeners();
-    }
-    
-    createWidgetDOM() {
-      // Tạo widget UI
-    }
-    
-    setupEventListeners() {
-      // Xử lý sự kiện
-    }
-    
-    // Phương thức API
-    sendMessage(message) {
-      // Gửi tin nhắn đến backend
-    }
-    
-    uploadFile(file) {
-      // Upload file
-    }
-  }
-  
-  global.PhongThuySo = {
-    createWidget: function(options) {
-      return new PhongThuySoWidget(options);
-    }
-  };
-})(window);
-```
-
-### 6.2. HTML Embedding
-
-```html
-<!-- Cách nhúng trên website khách hàng -->
-<div id="phong-thuy-so-widget"></div>
-
-<script src="https://phongthuyso.vn/sdk/phong-thuy-so-sdk.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    PhongThuySo.createWidget({
-      apiKey: 'YOUR_API_KEY',
-      targetElement: '#phong-thuy-so-widget',
-      theme: 'dark',
-      defaultAgent: 'bat-cuc-linh-so'
-    });
-  });
-</script>
-```
-
-## 7. Kế hoạch Triển khai
-
-### 7.1. Giai đoạn 1: Chuẩn bị (1-2 tuần)
-- Thiết lập dự án trên Render.com
-- Tạo repository và CI/CD
-- Thiết lập môi trường phát triển
-
-### 7.2. Giai đoạn 2: Core Features (3-4 tuần)
-- Triển khai Root Agent và BatCucLinhSo Agent
-- Xây dựng giao diện chính với ADK
-- Triển khai landing page BatCucLinhSo
-
-### 7.3. Giai đoạn 3: Đa phương tiện (2-3 tuần)
-- Triển khai tính năng nhận dạng giọng nói
-- Triển khai tính năng xử lý hình ảnh
-- Triển khai tính năng xử lý tài liệu và video
-
-### 7.4. Giai đoạn 4: Developer API (2 tuần)
-- Xây dựng hệ thống quản lý API key
-- Phát triển JavaScript SDK
-- Viết tài liệu API
-
-### 7.5. Giai đoạn 5: Tối ưu hóa và Mở rộng (liên tục)
-- Thêm Expert Agents mới
-- Tạo thêm landing pages
-- Tối ưu hóa hiệu suất
-
-## 8. Quản lý cấu hình Render.com
-
-### 8.1. Environment Variables
-- **Frontend**:
-  - `VITE_API_BASE_URL`
-  - `VITE_ADK_BASE_URL`
-  - `VITE_ADK_API_KEY`
-
-- **Backend**:
-  - `NODE_ENV`
-  - `MONGODB_URI`
-  - `JWT_SECRET`
-  - `ADK_API_KEY`
-  - `GEMINI_API_KEY`
-
-### 8.2. Render.com Blueprint
-
-Tập tin `render.yaml` đầy đủ cho toàn bộ dự án:
-
-```yaml
-services:
-  # Frontend SPA
+  # Python ADK Service
   - type: web
-    name: phong-thuy-so-frontend
-    env: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    name: phongthuybotadk
+    env: python
+    region: singapore
+    plan: starter
+    buildCommand: pip install -r python_adk/requirements.txt
+    startCommand: cd python_adk && python main.py
     envVars:
-      - key: VITE_API_BASE_URL
-        value: https://api-phong-thuy-so.onrender.com
-        
-  # Landing Page: BatCucLinhSo
-  - type: web
-    name: bat-cuc-linh-so-landing
-    env: static
-    buildCommand: npm install && npm run build:landing-bat-cuc
-    staticPublishPath: ./dist/landing/bat-cuc-linh-so
-    domain: bat-cuc-linh-so.phongthuyso.vn
-    
-  # Backend API
-  - type: web
-    name: phong-thuy-so-api
-    env: node
-    buildCommand: npm install
-    startCommand: node server.js
-    healthCheckPath: /api/health
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: MONGODB_URI
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: LOG_LEVEL
+        value: INFO
+      - key: API_KEY
         sync: false
-      - key: JWT_SECRET
+      - key: API_KEY_HEADER
+        value: X-API-Key
+      - key: GOOGLE_API_KEY
         sync: false
-      - key: ADK_API_KEY
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-        
-  # Database (Optional, có thể sử dụng MongoDB Atlas)
-  - type: pserv
-    name: phong-thuy-so-mongodb
-    env: docker
-    dockerfilePath: ./deployment/Dockerfile.mongodb
-    disk:
-      name: mongodb-data
-      mountPath: /data/db
-      sizeGB: 10
+      - key: DEFAULT_MODEL
+        value: gemini-pro
+      - key: ROOT_AGENT_MODEL
+        value: gemini-pro
+      - key: BATCUCLINH_SO_AGENT_MODEL
+        value: gemini-pro
 ```
 
-## 9. Kết luận
+## Bước triển khai
 
-Kế hoạch triển khai này đưa ra một lộ trình rõ ràng để xây dựng và triển khai dự án Phong Thủy Số trên nền tảng Render.com. Phương pháp tiếp cận này cho phép:
+1. **Đẩy code lên GitHub**:
+   ```bash
+   git add .
+   git commit -m "Prepare for Render deployment"
+   git push origin main
+   ```
 
-1. **Tích hợp liền mạch** với ADK để tận dụng các tính năng sẵn có
-2. **Mở rộng dễ dàng** với nhiều landing page và expert agents
-3. **Hỗ trợ đa phương tiện** đầy đủ (văn bản, hình ảnh, âm thanh, video, PDF)
-4. **API mở** cho phép khách hàng tích hợp dịch vụ vào website của họ
-5. **Triển khai đơn giản** thông qua Render.com với cấu hình "Infrastructure as Code"
+2. **Thiết lập trên Render**:
+   - Đăng nhập vào tài khoản Render
+   - Chọn "New" > "Blueprint"
+   - Chọn repository từ GitHub
+   - Render sẽ tự động phát hiện file render.yaml và đề xuất thiết lập
+   - Xem xét cấu hình và thiết lập các biến môi trường mật
 
-Với kiến trúc agent-based này, hệ thống có thể dễ dàng mở rộng thêm các chuyên gia trong tương lai mà không cần thay đổi kiến trúc cốt lõi. 
+3. **Triển khai và kiểm tra**:
+   - Nhấn "Apply" để bắt đầu quá trình triển khai
+   - Kiểm tra logs để đảm bảo không có lỗi trong quá trình triển khai
+   - Thử nghiệm API endpoints sau khi triển khai hoàn tất
+
+## Quản lý và giám sát
+
+### Cấu hình Autoscaling (tuỳ chọn)
+
+Nếu muốn tự động điều chỉnh tài nguyên dựa trên lưu lượng:
+
+- Đi đến mục "Settings" của service
+- Chọn "Autoscaling"
+- Thiết lập các thông số như min/max instances
+
+### Giám sát
+
+Sử dụng tính năng giám sát tích hợp của Render:
+
+- **Metrics**: Theo dõi CPU, RAM, và Network usage
+- **Logs**: Kiểm tra logs realtime
+- **Alerts**: Thiết lập cảnh báo cho các sự cố
+
+### Cập nhật
+
+Để cập nhật các dịch vụ:
+
+1. Đẩy các thay đổi lên GitHub
+2. Render sẽ tự động phát hiện và triển khai lại (nếu cấu hình Auto Deploy)
+
+## Khắc phục sự cố
+
+### Lỗi Node.js
+
+- **Cannot find module 'uuid'**: Chạy `npm install uuid` và đảm bảo nó được thêm vào package.json
+- **EADDRINUSE**: Đảm bảo port không bị conflict, Render thường sử dụng PORT environment variable
+- **MongoDB connection errors**: Kiểm tra MONGODB_URI và đảm bảo mạng cho phép kết nối
+
+### Lỗi Python ADK
+
+- **ModuleNotFoundError**: Đảm bảo tất cả dependencies được liệt kê trong requirements.txt
+- **ImportError**: Kiểm tra cấu trúc import và đường dẫn tương đối
+- **API Key errors**: Đảm bảo GOOGLE_API_KEY được thiết lập đúng
+
+## Tham khảo
+
+- [Render Docs - Web Services](https://render.com/docs/web-services)
+- [Render Docs - Environment Variables](https://render.com/docs/environment-variables)
+- [Render Docs - YAML Configuration](https://render.com/docs/yaml-spec)
+- [Render Docs - Python Services](https://render.com/docs/python)
+- [Render Docs - Node.js Services](https://render.com/docs/node-js) 

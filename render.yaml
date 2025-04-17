@@ -43,4 +43,60 @@ services:
     env: static
     buildCommand: cd phong_thuy_so_frontend && npm install && npm run build:landing-bat-cuc
     staticPublishPath: ./phong_thuy_so_frontend/dist/landing/bat-cuc-linh-so
-    domain: bat-cuc-linh-so.phongthuyso.vn 
+    domain: bat-cuc-linh-so.phongthuyso.vn
+
+  # Node.js Backend
+  - type: web
+    name: phongthuybotbackend
+    env: node
+    region: singapore
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: PYTHON_ADK_URL
+        value: https://phongthuybotadk.onrender.com
+      - key: ADK_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRE
+        value: 30d
+      - key: CLIENT_URL
+        value: https://phongthuyso.onrender.com
+      - key: GEMINI_API_KEY
+        sync: false
+
+  # Python ADK Service
+  - type: web
+    name: phongthuybotadk
+    env: python
+    region: singapore
+    plan: starter
+    buildCommand: pip install -r python_adk/requirements.txt
+    startCommand: cd python_adk && python main.py
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: LOG_LEVEL
+        value: INFO
+      - key: API_KEY
+        sync: false
+      - key: API_KEY_HEADER
+        value: X-API-Key
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: DEFAULT_MODEL
+        value: gemini-pro
+      - key: ROOT_AGENT_MODEL
+        value: gemini-pro
+      - key: BATCUCLINH_SO_AGENT_MODEL
+        value: gemini-pro 

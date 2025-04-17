@@ -17,34 +17,45 @@
 - ✅ Phát triển API v2 với cấu trúc mới
 - ✅ Dọn dẹp và tái cấu trúc dự án, loại bỏ code cũ
 - ✅ Cải thiện xử lý lỗi kết nối database
+- ✅ Cập nhật batCucLinhSoService.js để phân tích số điện thoại
+- ✅ Dọn dẹp thư mục agents (cũ) và di chuyển vào backup
+- ✅ Phát triển Root Agent với khả năng điều phối yêu cầu
+- ✅ Cài đặt API endpoints cho Root Agent (chat, stream, query)
+- ✅ Triển khai BatCucLinhSo Agent với các công cụ phân tích
+- ✅ Phát triển công cụ phân tích số điện thoại (PhoneAnalyzer)
+- ✅ Phát triển công cụ phân tích CCCD/CMND (CCCDAnalyzer)
+- ✅ Tích hợp SSE (Server-Sent Events) cho streaming responses
+- ✅ Cài đặt cơ chế fallback khi Python ADK chưa khởi động
+- ✅ Cập nhật tài liệu API (interface.md)
+- ✅ Chuẩn bị cấu hình triển khai trên Render
 
 ## Công việc cần thực hiện
 
 ### Ngắn hạn (2 tuần tới)
 
-- [ ] **Hoàn thiện cấu trúc API v2**
-  - [ ] Tạo thêm các endpoint cần thiết
-  - [ ] Triển khai middleware xác thực và phân quyền
-  - [ ] Cài đặt rate limiting và monitoring
-  - [ ] Tạo documentation cho API v2
+- [ ] **Hoàn thiện triển khai Python ADK**
+  - [ ] Triển khai Python ADK trên Render
+  - [ ] Cấu hình CI/CD cho Python ADK
+  - [ ] Thêm cơ chế logging và monitoring
+  - [ ] Tích hợp các cơ chế bảo mật
 
-- [ ] **Cài đặt Google ADK và A2A Protocol**
-  - [ ] Cài đặt môi trường Python với Google ADK
-  - [ ] Triển khai A2A Protocol trong Node.js
-  - [ ] Cấu hình MCP (Model Context Protocol)
-  - [ ] Tạo các agent definitions ban đầu
+- [ ] **Cài đặt các Agent khác**
+  - [ ] Phát triển Payment Agent
+  - [ ] Phát triển User Agent
+  - [ ] Tạo công cụ phân tích số tài khoản ngân hàng
+  - [ ] Tạo công cụ phân tích mật khẩu
 
-- [ ] **Triển khai Root Agent**
-  - [ ] Định nghĩa prompt cơ bản cho Root Agent
-  - [ ] Cài đặt các tools cần thiết cho Root Agent
-  - [ ] Cấu hình routing logic
-  - [ ] Tích hợp safety và logging callbacks
+- [ ] **Cải thiện frontend**
+  - [ ] Cập nhật giao diện để hỗ trợ streaming
+  - [ ] Thêm UI cho phân tích CCCD
+  - [ ] Tích hợp cơ chế loading và error handling
+  - [ ] Cải thiện UX cho quá trình trả lời
 
-- [ ] **Triển khai BatCucLinhSo Agent**
-  - [ ] Chuyển đổi logic phân tích số hiện tại sang dạng tools
-  - [ ] Định nghĩa prompt chuyên biệt
-  - [ ] Tích hợp với cơ sở dữ liệu hiện tại
-  - [ ] Kiểm thử phân tích số điện thoại
+- [ ] **Triển khai API authentication**
+  - [ ] Cài đặt JWT authentication
+  - [ ] Tạo API endpoint quản lý người dùng
+  - [ ] Thêm rate limiting
+  - [ ] Phân quyền API
 
 ### Trung hạn (1 tháng)
 
@@ -54,16 +65,17 @@
   - [ ] Cài đặt xử lý file upload (PDF, docx)
   - [ ] Kiểm thử và tối ưu hóa
 
-- [ ] **Triển khai các Agent khác**
-  - [ ] Payment Agent
-  - [ ] User Agent
-  - [ ] API Integration Agent
+- [ ] **Cải thiện chất lượng phân tích**
+  - [ ] Fine-tuning Gemini prompt
+  - [ ] Thêm các phương pháp phong thủy khác
+  - [ ] Tích hợp multiple model inference
+  - [ ] Cài đặt evaluations tự động
 
-- [ ] **Nâng cấp frontend**
-  - [ ] Thiết kế UI cho đa dạng đầu vào
-  - [ ] Cài đặt streaming responses
-  - [ ] Tạo dashboard cho API key management
-  - [ ] Responsive design
+- [ ] **Nâng cấp cơ sở hạ tầng**
+  - [ ] Cấu hình autoscaling trên Render
+  - [ ] Chuẩn bị môi trường staging
+  - [ ] Cài đặt DB backups
+  - [ ] Tối ưu hóa hiệu suất API
 
 ### Dài hạn (3 tháng)
 
@@ -71,7 +83,7 @@
   - [ ] Thêm "Recall Memory" cho các agent
   - [ ] Cải thiện chain-of-thought reasoning
   - [ ] Triển khai evaluations tự động
-  - [ ] Fine-tuning prompts
+  - [ ] Thêm khả năng tự học hỏi
 
 - [ ] **Tích hợp với các website khác**
   - [ ] API key management
@@ -83,7 +95,7 @@
   - [ ] Triển khai Prometheus metrics
   - [ ] Grafana dashboards
   - [ ] Alerts và notifications
-  - [ ] Usage analytics
+  - [ ] Usage analytics và billing
 
 ## Vấn đề cần giải quyết
 
@@ -93,6 +105,8 @@
 4. **Bảo mật**: Đảm bảo dữ liệu người dùng được bảo vệ trong quá trình xử lý
 5. **Mở rộng**: Đảm bảo kiến trúc dễ mở rộng cho các phương pháp phong thủy khác
 6. **Xử lý lỗi**: Cải thiện khả năng phục hồi khi có lỗi kết nối database hoặc API
+7. **Đồng bộ hóa**: Giải quyết vấn đề đồng bộ giữa Node.js backend và Python ADK
+8. **Dependencies**: Đảm bảo quản lý dependencies để tránh lỗi như thiếu module 'uuid'
 
 ## Tài nguyên và tham khảo
 
@@ -101,13 +115,15 @@
 - [Model Context Protocol (MCP)](https://github.com/google/agent-development-kit/blob/main/samples/resource-apis/mcp_resource_api.py)
 - [MongoDB Documentation](https://docs.mongodb.com/)
 - [Vue.js Documentation](https://vuejs.org/guide/introduction.html)
+- [Render Deployment Documentation](https://render.com/docs)
+- [Server-Sent Events (SSE)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events)
 
 ## Tiến độ dự án
 
 | Giai đoạn | Mục tiêu | Tiến độ | Deadline |
 |-----------|----------|---------|----------|
-| MVP | Root Agent + BatCucLinhSo Agent | 🟠 20% | 2 tuần |
-| Alpha | Payment Agent + Text/Image input | 🟡 0% | 4 tuần |
+| MVP | Root Agent + BatCucLinhSo Agent | 🟢 90% | 2 tuần |
+| Alpha | Payment Agent + Text/Image input | 🟠 10% | 4 tuần |
 | Beta | User Agent + Voice/File input | 🟡 0% | 6 tuần |
 | v1.0 | Hoàn thiện tất cả agent và input types | 🟡 0% | 8 tuần |
 | v1.1 | API keys và webhooks | 🟡 0% | 12 tuần | 

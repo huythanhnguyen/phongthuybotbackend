@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const batCucLinhSoService = require('../services/batCucLinhSoService');
 
 /**
  * @route   GET /api/v2/bat-cuc-linh-so
@@ -12,7 +13,8 @@ router.get('/', (req, res) => {
     message: 'API Bát Cục Linh Số v2.0',
     endpoints: {
       analyze: 'POST /api/v2/bat-cuc-linh-so/analyze',
-      phoneAnalysis: 'POST /api/v2/bat-cuc-linh-so/phone-analysis'
+      phoneAnalysis: 'POST /api/v2/bat-cuc-linh-so/phone',
+      cccdAnalysis: 'POST /api/v2/bat-cuc-linh-so/cccd'
     }
   });
 });
@@ -22,7 +24,7 @@ router.get('/', (req, res) => {
  * @desc    Phân tích thông tin theo Bát Cục Linh Số
  * @access  Public
  */
-router.post('/analyze', (req, res) => {
+router.post('/analyze', async (req, res) => {
   try {
     const { data, type } = req.body;
     
@@ -33,16 +35,21 @@ router.post('/analyze', (req, res) => {
       });
     }
 
-    // Tạm thời trả về kết quả giả lập
+    if (!type || !['phone', 'cccd'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Loại phân tích không hợp lệ. Vui lòng sử dụng "phone" hoặc "cccd"'
+      });
+    }
+
+    // Phân tích dữ liệu
+    const result = await batCucLinhSoService.analyze(data, type);
+
     res.status(200).json({
       success: true,
       message: 'Phân tích thành công',
-      type: type || 'general',
-      result: {
-        data: data,
-        analysis: `Đây là kết quả phân tích mẫu cho ${data}. Sẽ được kết nối với Python ADK sau.`,
-        summary: 'Kết quả phân tích mẫu'
-      }
+      type,
+      result
     });
   } catch (error) {
     console.error('Lỗi khi phân tích:', error);
@@ -55,11 +62,11 @@ router.post('/analyze', (req, res) => {
 });
 
 /**
- * @route   POST /api/v2/bat-cuc-linh-so/phone-analysis
+ * @route   POST /api/v2/bat-cuc-linh-so/phone
  * @desc    Phân tích số điện thoại theo Bát Cục Linh Số
  * @access  Public
  */
-router.post('/phone-analysis', (req, res) => {
+router.post('/phone', async (req, res) => {
   try {
     const { phoneNumber } = req.body;
     
@@ -79,22 +86,66 @@ router.post('/phone-analysis', (req, res) => {
       });
     }
 
-    // Tạm thời trả về kết quả giả lập
+    // Phân tích số điện thoại
+    const result = await batCucLinhSoService.analyzePhoneNumber(phoneNumber);
+
+    // Trả về kết quả
     res.status(200).json({
       success: true,
       message: 'Phân tích số điện thoại thành công',
-      result: {
-        phoneNumber: phoneNumber,
-        analysis: `Đây là kết quả phân tích mẫu cho số điện thoại ${phoneNumber}. Sẽ được kết nối với Python ADK sau.`,
-        summary: 'Số điện thoại có năng lượng tốt',
-        score: 8.5
-      }
+      result
     });
   } catch (error) {
     console.error('Lỗi khi phân tích số điện thoại:', error);
     res.status(500).json({
       success: false,
       message: 'Đã xảy ra lỗi khi phân tích số điện thoại',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/v2/bat-cuc-linh-so/cccd
+ * @desc    Phân tích CCCD/CMND theo Bát Cục Linh Số
+ * @access  Public
+ */
+router.post('/cccd', async (req, res) => {
+  try {
+    const { cccdNumber } = req.body;
+    
+    if (!cccdNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp số CCCD/CMND'
+      });
+    }
+
+    // Chuẩn hóa số CCCD
+    const normalizedCCCD = cccdNumber.replace(/[^0-9]/g, '');
+
+    // Kiểm tra độ dài số CCCD/CMND
+    if (normalizedCCCD.length !== 9 && normalizedCCCD.length !== 12) {
+      return res.status(400).json({
+        success: false,
+        message: 'Số CCCD/CMND không hợp lệ, vui lòng cung cấp CMND 9 số hoặc CCCD 12 số'
+      });
+    }
+
+    // Phân tích CCCD/CMND
+    const result = await batCucLinhSoService.analyzeCCCD(normalizedCCCD);
+
+    // Trả về kết quả
+    res.status(200).json({
+      success: true,
+      message: 'Phân tích CCCD/CMND thành công',
+      result
+    });
+  } catch (error) {
+    console.error('Lỗi khi phân tích CCCD/CMND:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Đã xảy ra lỗi khi phân tích CCCD/CMND',
       error: error.message
     });
   }

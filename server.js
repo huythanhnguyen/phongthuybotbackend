@@ -7,6 +7,7 @@ const morgan = require('morgan');
 const dotenv = require('dotenv');
 const path = require('path');
 const { connectDatabase } = require('./services/database');
+const errorHandler = require('./api/v2/middleware/errorHandler');
 
 // Load environment variables
 dotenv.config();
@@ -20,20 +21,27 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://phongthuyso.onrender.com', 'https://bat-cuc-linh-so.phongthuyso.onrender.com']
-    : 'http://localhost:5173',
+    : '*',
   credentials: true
 }));
 app.use(morgan('dev'));
 
 // Import routes
 const batCucLinhSoRoutes = require('./api/v2/routes/bat-cuc-linh-so');
+const rootAgentRoutes = require('./api/v2/routes/root-agent');
 
 // Routes
 app.use('/api/v2/bat-cuc-linh-so', batCucLinhSoRoutes);
+app.use('/api/v2/agent', rootAgentRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Phong Thủy Số API is running' });
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'Phong Thủy Số API is running',
+    version: '2.0.0',
+    adkEnabled: process.env.PYTHON_ADK_URL ? true : false 
+  });
 });
 
 // Main API endpoint
@@ -41,19 +49,25 @@ app.get('/', (req, res) => {
   res.status(200).json({ 
     message: 'Chào mừng đến với Phong Thủy Số API v2',
     version: '2.0.0',
-    status: process.env.NODE_ENV || 'development'
+    status: process.env.NODE_ENV || 'development',
+    endpoints: {
+      agent: '/api/v2/agent',
+      batCucLinhSo: '/api/v2/bat-cuc-linh-so',
+      health: '/api/health'
+    }
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `Không tìm thấy endpoint: ${req.method} ${req.originalUrl}`
   });
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: err.message || 'Đã xảy ra lỗi server',
-    error: process.env.NODE_ENV === 'development' ? err : {}
-  });
-});
+app.use(errorHandler);
 
 // Thử kết nối database nhưng không dừng server nếu thất bại
 try {
@@ -67,7 +81,7 @@ try {
 }
 
 // Start server
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 6000;
 app.listen(PORT, () => {
   console.log(`Server đang chạy trên cổng ${PORT}`);
   console.log(`API có thể truy cập tại http://localhost:${PORT}`);

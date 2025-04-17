@@ -1,101 +1,127 @@
-# Chatbot SDK API
+# Phong Thủy Số - Backend API
 
-API backend cho ứng dụng phân tích số điện thoại với hệ thống thanh toán và quản lý quota người dùng.
+Backend API cho dự án "Phong Thủy Số" sử dụng kiến trúc Agent-based để phân tích số điện thoại, CCCD và các dữ liệu số học khác.
 
-## Tính năng chính
-
-- Xác thực người dùng: đăng ký, đăng nhập, quản lý thông tin cá nhân
-- Phân tích số điện thoại theo phương pháp Tứ Cát Tứ Hung
-- Hệ thống thanh toán và quản lý quota: người dùng có số lượng câu hỏi giới hạn
-- API cho phép nâng cấp tài khoản và mua thêm câu hỏi
-- Phân quyền admin để quản lý hệ thống
-
-## Cài đặt và chạy local
+## Cài đặt
 
 ### Yêu cầu
 
 - Node.js (v14 trở lên)
-- MongoDB
+- MongoDB (tùy chọn)
+- Python 3.9+ (cho ADK)
 
-### Các bước cài đặt
+### Cài đặt Node.js Backend
 
-1. Clone repository
-   ```
-   git clone <repository-url>
-   cd chatbotsdtapi
-   ```
+```bash
+# Clone repository
+git clone https://github.com/youruser/phongthuybotbackend.git
+cd phongthuybotbackend
 
-2. Cài đặt dependencies
-   ```
-   npm install
-   ```
+# Cài đặt dependencies
+npm install
 
-3. Cài đặt biến môi trường
-   ```
-   cp .env.example .env
-   ```
-   Sau đó mở file `.env` và cập nhật các giá trị phù hợp.
+# Tạo file .env
+cp .env.example .env
+# Sửa file .env để phù hợp với môi trường
 
-4. Khởi động server
-   ```
-   npm start
-   ```
+# Chạy server
+npm run dev
+```
 
-Server sẽ chạy tại http://localhost:5000 (hoặc port được cấu hình trong .env)
+### Cài đặt Python ADK (Agent Development Kit)
 
-## Triển khai lên môi trường production
+```bash
+# Di chuyển vào thư mục Python ADK
+cd python_adk
 
-### Chuẩn bị
+# Tạo virtual environment
+python -m venv venv
+source venv/bin/activate  # Trên Windows: venv\Scripts\activate
 
-1. Đảm bảo đã cập nhật file `.gitignore` để loại trừ các file nhạy cảm
-2. Tạo các biến môi trường cần thiết trên host của bạn
+# Cài đặt dependencies
+pip install -r requirements.txt
 
-### Các bước triển khai
+# Tạo file .env
+cp .env.example .env
+# Sửa file .env để phù hợp với môi trường
 
-1. Đẩy code lên GitHub
-   ```
-   git add .
-   git commit -m "Chuẩn bị triển khai production"
-   git push origin main
-   ```
+# Chạy Python ADK
+python main.py
+```
 
-2. Triển khai lên server (ví dụ: Render, Heroku, hoặc VPS)
-   - Với Render/Heroku: Kết nối repository GitHub và thiết lập các biến môi trường
-   - Với VPS: Clone repository, cài đặt dependencies, thiết lập biến môi trường và chạy với PM2
+## Kiến trúc Agent
 
-3. Thiết lập database MongoDB Atlas hoặc MongoDB trên server
+### Root Agent
 
-4. Cấu hình CORS trong `app.js` để chỉ cho phép các domain cụ thể
+Root Agent đóng vai trò điều phối, nhận yêu cầu từ người dùng và chuyển hướng đến agent chuyên biệt thích hợp.
+
+### Bát Cục Linh Số Agent
+
+Agent chuyên phân tích số điện thoại, CCCD/CMND, STK ngân hàng, mật khẩu theo phương pháp Bát Cục Linh Số.
 
 ## API Endpoints
 
-### Xác thực
-- `POST /api/auth/register` - Đăng ký tài khoản mới
-- `POST /api/auth/login` - Đăng nhập
-- `GET /api/auth/verify-token` - Xác thực token
+### Root Agent
 
-### Người dùng
-- `GET /api/user/profile` - Lấy thông tin cá nhân
-- `PUT /api/user/profile` - Cập nhật thông tin cá nhân
-- `PUT /api/user/change-password` - Đổi mật khẩu
+```
+GET /api/v2/agent
+POST /api/v2/agent/chat
+POST /api/v2/agent/stream
+POST /api/v2/agent/query
+```
+
+### Bát Cục Linh Số
+
+```
+GET /api/v2/bat-cuc-linh-so
+POST /api/v2/bat-cuc-linh-so/analyze
+POST /api/v2/bat-cuc-linh-so/phone
+POST /api/v2/bat-cuc-linh-so/cccd
+```
+
+## Ví dụ sử dụng API
 
 ### Phân tích số điện thoại
-- `POST /api/analysis/phone` - Phân tích số điện thoại
 
-### Thanh toán và Quota
-- `GET /api/user/questions` - Lấy số câu hỏi còn lại
-- `POST /api/payment/create` - Tạo giao dịch thanh toán
-- `POST /api/payment/complete/:id` - Hoàn tất thanh toán
-- `GET /api/payment/history` - Lấy lịch sử thanh toán
+```bash
+curl -X POST http://localhost:5000/api/v2/bat-cuc-linh-so/phone \
+  -H "Content-Type: application/json" \
+  -d '{"phoneNumber": "0987654321"}'
+```
 
-### Admin
-- `POST /api/admin/free-mode` - Bật/tắt chế độ miễn phí
-- `POST /api/admin/add-questions/:userId` - Thêm câu hỏi cho user
-- `POST /api/admin/set-premium/:userId` - Cập nhật trạng thái premium
+### Gửi tin nhắn đến Root Agent
 
-## Bảo mật
+```bash
+curl -X POST http://localhost:5000/api/v2/agent/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Phân tích số điện thoại 0987654321", "sessionId": "session123"}'
+```
 
-- JWT được sử dụng cho xác thực
-- Mật khẩu được mã hóa bằng bcrypt
-- API được bảo vệ bởi middleware xác thực
-- Biến môi trường được sử dụng để lưu trữ thông tin nhạy cảm 
+### Truy vấn trực tiếp đến Bát Cục Linh Số Agent
+
+```bash
+curl -X POST http://localhost:5000/api/v2/agent/query \
+  -H "Content-Type: application/json" \
+  -d '{"agentType": "batcuclinh_so", "query": "Phân tích số CCCD 012345678901"}'
+```
+
+## Chức năng dự phòng (Fallback)
+
+API được thiết kế để hoạt động ngay cả khi Python ADK chưa khởi động. Khi Python ADK không khả dụng, hệ thống sẽ sử dụng chức năng dự phòng trong Node.js để cung cấp kết quả cơ bản.
+
+## Cấu trúc thư mục
+
+```
+/
+├── api/               # API endpoints
+│   ├── middleware/    # Middleware chung
+│   └── v2/            # API v2
+│       ├── middleware/# Middleware API v2
+│       ├── routes/    # Route handlers 
+│       └── services/  # Business logic
+├── services/          # Core services
+├── python_adk/        # Python Agent Development Kit
+│   ├── agents/        # Agent definitions
+│   ├── a2a/           # Agent-to-Agent protocol
+│   └── utils/         # Utility modules
+└── config/            # Configuration 
