@@ -4,13 +4,14 @@ Entry point cho FastAPI server, cung cấp API endpoints để tương tác vớ
 
 import os
 import json
-from typing import Optional, Dict, Any
-from fastapi import FastAPI, HTTPException, Depends, Request, Response
+import logging
+import asyncio
+from typing import Dict, Any, Optional, List
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 import uvicorn
 from dotenv import load_dotenv
-import logging
 from pydantic import BaseModel
 
 # Tải biến môi trường
@@ -22,6 +23,13 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Root Agent
+from python_adk.agents.root_agent import RootAgent, AgentType
+
+# Specialized Agents
+from python_adk.agents.batcuclinh_so_agent import BatCucLinhSoAgent
+from python_adk.agents.auth_agent import AuthAgent
 
 # Model cho request
 class ChatRequest(BaseModel):
@@ -60,6 +68,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Khởi tạo và đăng ký các agents
+root_agent = RootAgent()
+batcuclinh_so_agent = BatCucLinhSoAgent()
+auth_agent = AuthAgent()
+
+# Đăng ký các agents với Root Agent
+root_agent.register_expert_agent(AgentType.BAT_CUC_LINH_SO, batcuclinh_so_agent)
+root_agent.register_expert_agent("auth", auth_agent)  # Đăng ký auth agent
+
 # Root endpoint
 @app.get("/")
 async def root():
@@ -79,14 +96,13 @@ async def chat(request: ChatRequest):
     try:
         logger.info(f"Received chat request: {request.message[:50]}...")
         
-        # TODO: Implement actual agent processing logic here
-        # Placeholder response
-        response = {
-            "success": True,
-            "response": f"Phân tích: {request.message}",
-            "agent_type": "batcuclinh_so",
-            "session_id": request.session_id
-        }
+        # Xử lý yêu cầu bằng Root Agent
+        response = await root_agent.process_request(
+            user_request=request.message,
+            session_id=request.session_id,
+            user_id=request.user_id,
+            metadata=request.metadata
+        )
         
         return response
     except Exception as e:
@@ -149,14 +165,31 @@ async def query(request: QueryRequest):
     try:
         logger.info(f"Received query request for agent {request.agent_type}: {request.query[:50]}...")
         
-        # TODO: Implement actual agent-specific processing logic here
-        # Placeholder response
-        response = {
-            "success": True,
-            "response": f"Phân tích từ agent {request.agent_type}: {request.query}",
-            "agent_type": request.agent_type,
-            "session_id": request.session_id
+        # Lấy agent type
+        agent_type = request.agent_type
+        if agent_type.lower() == "batcuclinh_so":
+            agent_type = AgentType.BAT_CUC_LINH_SO
+        
+        # Tạo context để gọi Root Agent
+        context = {
+            "session_id": request.session_id,
+            "user_id": request.user_id,
+            "metadata": {
+                "query": request.query,
+                **request.metadata
+            }
         }
+        
+        # Thực hiện truy vấn thông qua Root Agent
+        response = await root_agent.process_request(
+            user_request=request.query,
+            session_id=request.session_id,
+            user_id=request.user_id,
+            metadata={
+                "agent_type": agent_type,
+                **request.metadata
+            }
+        )
         
         return response
     except Exception as e:
@@ -219,8 +252,15 @@ async def analyze_cccd(request: CCCDRequest):
         # Chuẩn hóa số CCCD
         cccd = request.cccd_number.strip()
         
+        # Kiểm tra độ dài số CCCD
+        if not cccd.isdigit() or (len(cccd) != 9 and len(cccd) != 12):
+            return {
+                "success": False,
+                "message": "Số CCCD/CMND không hợp lệ. Vui lòng nhập 9 số (CMND) hoặc 12 số (CCCD)."
+            }
+        
         # Tính tổng các chữ số
-        sum_value = sum(int(digit) for digit in cccd if digit.isdigit())
+        sum_value = sum(int(digit) for digit in cccd)
         
         # Rút gọn tổng thành số có 1 chữ số
         reduced_sum = sum_value
@@ -235,61 +275,85 @@ async def analyze_cccd(request: CCCDRequest):
         }
         element = element_map.get(reduced_sum, "Không xác định")
         
-        # Phân tích thông tin từ CCCD
+        # Phân tích thông tin từ CCCD (chỉ áp dụng cho CCCD 12 số)
         info = {}
-        if len(cccd) == 12:  # CCCD 12 số
+        if len(cccd) == 12:
+            # Mã tỉnh/thành phố (3 số đầu)
             province_code = cccd[:3]
-            gender_code = int(cccd[3])
-            birth_year = cccd[4:6]
-            
-            # Xác định giới tính và thế kỷ
-            gender = "Nam" if gender_code % 2 == 0 else "Nữ"
-            century = ""
-            if gender_code in [0, 1]:
-                century = "19"
-            elif gender_code in [2, 3]:
-                century = "20"
-            elif gender_code in [4, 5]:
-                century = "21"
-            
-            info = {
-                "type": "CCCD",
-                "provinceCode": province_code,
-                "gender": gender,
-                "birthYear": f"{century}{birth_year}",
-                "randomCode": cccd[6:]
+            province_map = {
+                "001": "Hà Nội", "002": "Hà Giang", "004": "Cao Bằng",
+                "006": "Bắc Kạn", "008": "Tuyên Quang", "010": "Lào Cai",
+                "011": "Điện Biên", "012": "Lai Châu", "014": "Sơn La",
+                "015": "Yên Bái", "017": "Hòa Bình", "019": "Thái Nguyên",
+                "020": "Lạng Sơn", "022": "Quảng Ninh", "024": "Bắc Giang",
+                "025": "Phú Thọ", "026": "Vĩnh Phúc", "027": "Bắc Ninh",
+                "030": "Hải Dương", "031": "Hải Phòng", "033": "Hưng Yên",
+                "034": "Thái Bình", "035": "Hà Nam", "036": "Nam Định",
+                "037": "Ninh Bình", "038": "Thanh Hóa", "040": "Nghệ An",
+                "042": "Hà Tĩnh", "044": "Quảng Bình", "045": "Quảng Trị",
+                "046": "Thừa Thiên Huế", "048": "Đà Nẵng", "049": "Quảng Nam",
+                "051": "Quảng Ngãi", "052": "Bình Định", "054": "Phú Yên",
+                "056": "Khánh Hòa", "058": "Ninh Thuận", "060": "Bình Thuận",
+                "062": "Kon Tum", "064": "Gia Lai", "066": "Đắk Lắk",
+                "067": "Đắk Nông", "068": "Lâm Đồng", "070": "Bình Phước",
+                "072": "Tây Ninh", "074": "Bình Dương", "075": "Đồng Nai",
+                "077": "Bà Rịa - Vũng Tàu", "079": "Hồ Chí Minh", "080": "Long An",
+                "082": "Tiền Giang", "083": "Bến Tre", "084": "Trà Vinh",
+                "086": "Vĩnh Long", "087": "Đồng Tháp", "089": "An Giang",
+                "091": "Kiên Giang", "092": "Cần Thơ", "093": "Hậu Giang",
+                "094": "Sóc Trăng", "095": "Bạc Liêu", "096": "Cà Mau"
             }
-        elif len(cccd) == 9:  # CMND 9 số
-            info = {
-                "type": "CMND",
-                "note": "CMND 9 số không có cấu trúc cố định để trích xuất thông tin chi tiết"
-            }
-        
-        # TODO: Implement more detailed analysis logic here
+            info["province"] = province_map.get(province_code, "Không xác định")
+            
+            # Mã giới tính và năm sinh (1 số tiếp theo)
+            gender_year_code = int(cccd[3])
+            if gender_year_code == 0:
+                info["gender"] = "Nam"
+                info["birth_year"] = "19" + cccd[4:6]
+            elif gender_year_code == 1:
+                info["gender"] = "Nữ"
+                info["birth_year"] = "19" + cccd[4:6]
+            elif gender_year_code == 2:
+                info["gender"] = "Nam"
+                info["birth_year"] = "20" + cccd[4:6]
+            elif gender_year_code == 3:
+                info["gender"] = "Nữ"
+                info["birth_year"] = "20" + cccd[4:6]
+            elif gender_year_code == 4:
+                info["gender"] = "Nam"
+                info["birth_year"] = "21" + cccd[4:6]
+            elif gender_year_code == 5:
+                info["gender"] = "Nữ"
+                info["birth_year"] = "21" + cccd[4:6]
+            else:
+                info["gender"] = "Không xác định"
+                info["birth_year"] = "Không xác định"
+            
+            # Mã số ngẫu nhiên
+            info["random_code"] = cccd[6:]
         
         return {
             "success": True,
-            "cccdNumber": cccd,
+            "cccd_number": cccd,
             "totalValue": reduced_sum,
             "element": element,
             "info": info,
-            "analysis": f"""
-            Phân tích số {info.get('type', 'CCCD/CMND')}: {cccd}
+            "content": f"""
+            Phân tích số CCCD: {cccd}
             
-            Tổng giá trị: {sum_value} (Rút gọn: {reduced_sum})
-            Ngũ hành: {element}
+            Tổng số (Lộ số): {reduced_sum} - Ngũ hành: {element}
             
-            {f"Thông tin cá nhân:" if info.get('type') == 'CCCD' else ''}
-            {f"- Mã tỉnh: {info.get('provinceCode')}" if info.get('type') == 'CCCD' else ''}
-            {f"- Giới tính: {info.get('gender')}" if info.get('type') == 'CCCD' else ''}
-            {f"- Năm sinh: {info.get('birthYear')}" if info.get('type') == 'CCCD' else ''}
-            {f"- Mã ngẫu nhiên: {info.get('randomCode')}" if info.get('type') == 'CCCD' else ''}
+            {f"Thông tin cá nhân:" if info else ""}
+            {f"- Tỉnh/Thành phố: {info.get('province')}" if info.get('province') else ""}
+            {f"- Giới tính: {info.get('gender')}" if info.get('gender') else ""}
+            {f"- Năm sinh: {info.get('birth_year')}" if info.get('birth_year') else ""}
+            {f"- Mã ngẫu nhiên: {info.get('random_code')}" if info.get('random_code') else ""}
             
             Đây là kết quả phân tích từ Python ADK.
             """
         }
     except Exception as e:
-        logger.error(f"Error analyzing CCCD/CMND: {str(e)}")
+        logger.error(f"Error analyzing CCCD: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Khởi động server khi chạy trực tiếp

@@ -32,6 +32,7 @@ class AgentType(str, Enum):
     BAT_CUC_LINH_SO = "batcuclinh_so"
     PAYMENT = "payment"
     USER = "user"
+    AUTH = "auth"
     UNKNOWN = "unknown"
 
 
