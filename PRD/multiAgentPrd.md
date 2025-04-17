@@ -54,7 +54,112 @@ Hệ thống sẽ triển khai một kiến trúc đa tác tử gồm:
 2. **BatCucLinhSo Agent**
    - **Mục đích**: Chuyên phân tích số điện thoại, CCCD, STK ngân hàng theo phương pháp Bát Cục Linh Số
    - **Khả năng**: Phân tích chi tiết, đưa ra lời khuyên, giải thích ý nghĩa
-   - **Tools**: Phân tích số điện thoại, phân tích CCCD, phân tích STK, đánh giá mật khẩu
+   - **Nguyên lý phân tích Bát Cục Linh Số**:
+
+     Bát Cục Linh Số là phương pháp phân tích năng lượng của các con số dựa trên 8 loại sao chính - 4 cát tinh và 4 hung tinh:
+
+     **4 Cát Tinh (Sao Tốt):**
+     1. **Sinh Khí**: 
+        - Cặp số: 14, 41, 67, 76, 39, 93, 28, 82
+        - Đặc tính: Vui vẻ, quý nhân, dẫn đạo lực
+        - Lĩnh vực phù hợp: Phát triển, tăng trưởng, quý nhân giúp đỡ
+        - Mức năng lượng: 1-4 (tùy cặp số)
+
+     2. **Thiên Y**: 
+        - Cặp số: 13, 31, 68, 86, 49, 94, 27, 72
+        - Đặc tính: Tiền tài, tình cảm, hồi báo
+        - Lĩnh vực phù hợp: Tài chính, tình cảm, sức khỏe
+        - Mức năng lượng: 1-4 (tùy cặp số)
+
+     3. **Diên Niên**: 
+        - Cặp số: 19, 91, 78, 87, 34, 43, 26, 62
+        - Đặc tính: Năng lực chuyên nghiệp, công việc
+        - Lĩnh vực phù hợp: Sự nghiệp, lãnh đạo, phát triển chuyên môn
+        - Mức năng lượng: 1-4 (tùy cặp số)
+
+     4. **Phục Vị**: 
+        - Cặp số: 11, 22, 33, 44, 66, 77, 88, 99
+        - Đặc tính: Chịu đựng, khó thay đổi
+        - Đặc điểm: Theo hung thì hung, theo cát thì cát (có thể tốt hoặc xấu tùy tổ hợp)
+        - Mức năng lượng: 1-4 (tùy cặp số)
+
+     **4 Hung Tinh (Sao Xấu):**
+     1. **Họa Hại**: 
+        - Cặp số: 17, 71, 89, 98, 46, 64, 23, 32
+        - Đặc tính: Khẩu tài, chi tiêu lớn, thị phi
+        - Cảnh báo: Cãi vã, kiện tụng, phá tài, bệnh tật
+        - Mức năng lượng: 1-4 (tùy cặp số)
+
+     2. **Lục Sát**: 
+        - Cặp số: 16, 61, 47, 74, 38, 83, 92, 29
+        - Đặc tính: Giao tế, phục vụ, cửa hàng, nữ nhân
+        - Cảnh báo: Tình cảm không ổn định, u buồn, trầm cảm
+        - Mức năng lượng: 1-4 (tùy cặp số)
+
+     3. **Ngũ Quỷ**: 
+        - Cặp số: 18, 81, 79, 97, 36, 63, 24, 42
+        - Đặc tính: Trí óc, biến động, không ổn định, tư duy
+        - Cảnh báo: Thay đổi liên tục, tiểu nhân, khó quản lý tài chính
+        - Mức năng lượng: 1-4 (tùy cặp số)
+
+     4. **Tuyệt Mệnh**: 
+        - Cặp số: 12, 21, 69, 96, 84, 48, 73, 37
+        - Đặc tính: Dốc sức, đầu tư, hành động, phá tài
+        - Cảnh báo: Dễ phá tài, gặp tai nạn, sức khỏe không tốt
+        - Mức năng lượng: 1-4 (tùy cặp số)
+
+     **Quy tắc phân tích chính:**
+
+     1. **Tách thành cặp số**: Số điện thoại/CCCD/STK được tách thành các cặp số liền kề
+        - Ví dụ: 0123456789 → 01, 12, 23, 34, 45, 56, 67, 78, 89
+
+     2. **Xác định thuộc tính sao**: Mỗi cặp số tương ứng với một sao (cát hoặc hung)
+
+     3. **Đánh giá mức năng lượng**: Mỗi cặp số có mức năng lượng từ 1-4 (1: yếu, 4: mạnh)
+
+     4. **Phân tích tổ hợp sao**: 
+        - Sao liền kề tạo thành tổ hợp có ý nghĩa riêng
+        - Tổ hợp Cát-Cát: Rất tốt
+        - Tổ hợp Cát-Hung: Trung tính hoặc giảm hiệu quả
+        - Tổ hợp Hung-Hung: Rất xấu
+
+     5. **Xử lý số 0 và 5**: 
+        - Số 0: Thường làm biến chất sao (hóa hung)
+        - Số 5: Thường bị loại bỏ khỏi chuỗi phân tích
+
+     6. **Đánh giá tổng thể**:
+        - Tính toán tỷ lệ Cát/Hung
+        - Đánh giá mức năng lượng tổng hợp
+        - Xác định các tổ hợp đặc biệt có ảnh hưởng mạnh
+
+     **Ứng dụng theo loại phân tích:**
+
+     1. **Phân tích Số Điện Thoại**:
+        - Đánh giá theo cặp số và mức độ tương thích với mục đích sử dụng
+        - Xác định phù hợp với ngành nghề, công việc, hoặc tài lộc
+        - Đề xuất giải pháp cải thiện (nếu cần)
+
+     2. **Phân tích CCCD**:
+        - Tập trung vào 6 số cuối (phần số ngẫu nhiên)
+        - Xác định ảnh hưởng đến vận mệnh và các khía cạnh cuộc sống
+        - Đưa ra lời khuyên về việc nên/không nên làm với CCCD này
+
+     3. **Phân tích STK Ngân Hàng**:
+        - Đặc biệt chú trọng đến 4 số cuối
+        - Đánh giá mức độ phù hợp với mục đích tài chính
+        - Phân tích theo các mục đích: kinh doanh, tiết kiệm, đầu tư, cá nhân
+
+     4. **Phân tích Mật Khẩu**:
+        - Phân tích các cặp số trong mật khẩu
+        - Đánh giá tác động của các con số đến bảo mật và năng lượng
+        - Đề xuất điều chỉnh để cải thiện cả bảo mật và phong thủy
+
+     **Công cụ (Tools):**
+     - `PhoneAnalyzer`: Phân tích số điện thoại theo nguyên lý Bát Cục Linh Số
+     - `CCCDAnalyzer`: Phân tích số CCCD theo quy tắc phong thủy
+     - `BankAccountAnalyzer`: Phân tích STK ngân hàng
+     - `PasswordAnalyzer`: Đánh giá mật khẩu
+     - `RecommendationEngine`: Đưa ra lời khuyên dựa trên kết quả phân tích
 
 3. **Payment Agent**
    - **Mục đích**: Xử lý các giao dịch thanh toán
@@ -141,12 +246,112 @@ MCP sẽ được triển khai để quản lý tập trung các prompt, cấu h
 - Phân tích và đề xuất cải thiện mật khẩu
 - Giải thích ý nghĩa và đưa ra lời khuyên
 
-**Tools**:
-- `PhoneAnalyzer`: Phân tích số điện thoại
-- `CCCDAnalyzer`: Phân tích số CCCD
+**Nguyên lý phân tích Bát Cục Linh Số**:
+
+Bát Cục Linh Số là phương pháp phân tích năng lượng của các con số dựa trên 8 loại sao chính - 4 cát tinh và 4 hung tinh:
+
+**4 Cát Tinh (Sao Tốt):**
+1. **Sinh Khí**: 
+   - Cặp số: 14, 41, 67, 76, 39, 93, 28, 82
+   - Đặc tính: Vui vẻ, quý nhân, dẫn đạo lực
+   - Lĩnh vực phù hợp: Phát triển, tăng trưởng, quý nhân giúp đỡ
+   - Mức năng lượng: 1-4 (tùy cặp số)
+
+2. **Thiên Y**: 
+   - Cặp số: 13, 31, 68, 86, 49, 94, 27, 72
+   - Đặc tính: Tiền tài, tình cảm, hồi báo
+   - Lĩnh vực phù hợp: Tài chính, tình cảm, sức khỏe
+   - Mức năng lượng: 1-4 (tùy cặp số)
+
+3. **Diên Niên**: 
+   - Cặp số: 19, 91, 78, 87, 34, 43, 26, 62
+   - Đặc tính: Năng lực chuyên nghiệp, công việc
+   - Lĩnh vực phù hợp: Sự nghiệp, lãnh đạo, phát triển chuyên môn
+   - Mức năng lượng: 1-4 (tùy cặp số)
+
+4. **Phục Vị**: 
+   - Cặp số: 11, 22, 33, 44, 66, 77, 88, 99
+   - Đặc tính: Chịu đựng, khó thay đổi
+   - Đặc điểm: Theo hung thì hung, theo cát thì cát (có thể tốt hoặc xấu tùy tổ hợp)
+   - Mức năng lượng: 1-4 (tùy cặp số)
+
+**4 Hung Tinh (Sao Xấu):**
+1. **Họa Hại**: 
+   - Cặp số: 17, 71, 89, 98, 46, 64, 23, 32
+   - Đặc tính: Khẩu tài, chi tiêu lớn, thị phi
+   - Cảnh báo: Cãi vã, kiện tụng, phá tài, bệnh tật
+   - Mức năng lượng: 1-4 (tùy cặp số)
+
+2. **Lục Sát**: 
+   - Cặp số: 16, 61, 47, 74, 38, 83, 92, 29
+   - Đặc tính: Giao tế, phục vụ, cửa hàng, nữ nhân
+   - Cảnh báo: Tình cảm không ổn định, u buồn, trầm cảm
+   - Mức năng lượng: 1-4 (tùy cặp số)
+
+3. **Ngũ Quỷ**: 
+   - Cặp số: 18, 81, 79, 97, 36, 63, 24, 42
+   - Đặc tính: Trí óc, biến động, không ổn định, tư duy
+   - Cảnh báo: Thay đổi liên tục, tiểu nhân, khó quản lý tài chính
+   - Mức năng lượng: 1-4 (tùy cặp số)
+
+4. **Tuyệt Mệnh**: 
+   - Cặp số: 12, 21, 69, 96, 84, 48, 73, 37
+   - Đặc tính: Dốc sức, đầu tư, hành động, phá tài
+   - Cảnh báo: Dễ phá tài, gặp tai nạn, sức khỏe không tốt
+   - Mức năng lượng: 1-4 (tùy cặp số)
+
+**Quy tắc phân tích chính:**
+
+1. **Tách thành cặp số**: Số điện thoại/CCCD/STK được tách thành các cặp số liền kề
+   - Ví dụ: 0123456789 → 01, 12, 23, 34, 45, 56, 67, 78, 89
+
+2. **Xác định thuộc tính sao**: Mỗi cặp số tương ứng với một sao (cát hoặc hung)
+
+3. **Đánh giá mức năng lượng**: Mỗi cặp số có mức năng lượng từ 1-4 (1: yếu, 4: mạnh)
+
+4. **Phân tích tổ hợp sao**: 
+   - Sao liền kề tạo thành tổ hợp có ý nghĩa riêng
+   - Tổ hợp Cát-Cát: Rất tốt
+   - Tổ hợp Cát-Hung: Trung tính hoặc giảm hiệu quả
+   - Tổ hợp Hung-Hung: Rất xấu
+
+5. **Xử lý số 0 và 5**: 
+   - Số 0: Thường làm biến chất sao (hóa hung)
+   - Số 5: Thường bị loại bỏ khỏi chuỗi phân tích
+
+6. **Đánh giá tổng thể**:
+   - Tính toán tỷ lệ Cát/Hung
+   - Đánh giá mức năng lượng tổng hợp
+   - Xác định các tổ hợp đặc biệt có ảnh hưởng mạnh
+
+**Ứng dụng theo loại phân tích:**
+
+1. **Phân tích Số Điện Thoại**:
+   - Đánh giá theo cặp số và mức độ tương thích với mục đích sử dụng
+   - Xác định phù hợp với ngành nghề, công việc, hoặc tài lộc
+   - Đề xuất giải pháp cải thiện (nếu cần)
+
+2. **Phân tích CCCD**:
+   - Tập trung vào 6 số cuối (phần số ngẫu nhiên)
+   - Xác định ảnh hưởng đến vận mệnh và các khía cạnh cuộc sống
+   - Đưa ra lời khuyên về việc nên/không nên làm với CCCD này
+
+3. **Phân tích STK Ngân Hàng**:
+   - Đặc biệt chú trọng đến 4 số cuối
+   - Đánh giá mức độ phù hợp với mục đích tài chính
+   - Phân tích theo các mục đích: kinh doanh, tiết kiệm, đầu tư, cá nhân
+
+4. **Phân tích Mật Khẩu**:
+   - Phân tích các cặp số trong mật khẩu
+   - Đánh giá tác động của các con số đến bảo mật và năng lượng
+   - Đề xuất điều chỉnh để cải thiện cả bảo mật và phong thủy
+
+**Công cụ (Tools):**
+- `PhoneAnalyzer`: Phân tích số điện thoại theo nguyên lý Bát Cục Linh Số
+- `CCCDAnalyzer`: Phân tích số CCCD theo quy tắc phong thủy
 - `BankAccountAnalyzer`: Phân tích STK ngân hàng
 - `PasswordAnalyzer`: Đánh giá mật khẩu
-- `RecommendationEngine`: Đưa ra lời khuyên
+- `RecommendationEngine`: Đưa ra lời khuyên dựa trên kết quả phân tích
 
 ### 3. Payment Agent
 

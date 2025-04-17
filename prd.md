@@ -122,25 +122,36 @@ Hệ thống được thiết kế dựa trên kiến trúc agent, với một R
 - **Yêu cầu kỹ thuật**:
   - Chuẩn hóa dãy số (xử lý số 0 theo quy tắc)
   - Tách số thành từng cặp và phân tích
-  - Đánh giá tổng thể dựa trên Bát Cực Linh Số
+  - Đánh giá tổng thể dựa trên Bát Cục Linh Số
+  - Xác định các hung tinh và cát tinh
+  - Phân tích tác động của từng cặp số
+  - Phân tích tổ hợp các sao liền kề
 
 #### 3.1.4 Phân tích và đề xuất số tài khoản ngân hàng
 - **Mô tả**: Phân tích và đề xuất các cặp số cuối cho tài khoản ngân hàng
-- **Input**: Mục đích sử dụng tài khoản, các số ưa thích (không bắt buộc)
-- **Output**: Các cặp số cuối được đề xuất và phân tích
+- **Input**: 
+  - Số tài khoản (cho phân tích)
+  - Mục đích sử dụng tài khoản, các số ưa thích (cho đề xuất)
+- **Output**: 
+  - Phân tích: Kết quả phân tích chi tiết các cặp số và ý nghĩa
+  - Đề xuất: Danh sách các số tài khoản phù hợp với mục đích
 - **Yêu cầu kỹ thuật**:
+  - Phân tích 4 số cuối của tài khoản theo từng cặp số
   - Xác định các cặp số tốt cho từng mục đích sử dụng
-  - Đánh giá và xếp hạng các cặp số theo mức độ phù hợp
+  - Đánh giá tổng thể dựa trên tổng năng lượng
+  - Đề xuất các cặp số phù hợp khi người dùng muốn chọn số
+  - Hỗ trợ các mục đích: kinh doanh, cá nhân, đầu tư, tiết kiệm, sức khỏe
 
 #### 3.1.5 Tạo và đánh giá mật khẩu
-- **Mô tả**: Tạo và đánh giá mật khẩu theo phong thủy
-- **Input**: Mục đích sử dụng, các từ khóa ưa thích (không bắt buộc)
-- **Output**: Mật khẩu đề xuất kèm phân tích phong thủy
+- **Mô tả**: Đánh giá mật khẩu hiện có theo phong thủy số học
+- **Input**: Mật khẩu hiện tại
+- **Output**: Kết quả đánh giá và gợi ý cải thiện
 - **Yêu cầu kỹ thuật**:
-  - Tạo mật khẩu dựa trên thông tin đầu vào
-  - Đảm bảo độ an toàn của mật khẩu
-  - Tránh hung tinh liền kề trong mật khẩu
-  - Phân tích phong thủy của mật khẩu
+  - Phân tích các cặp chữ số trong mật khẩu
+  - Đánh giá tính an toàn của mật khẩu
+  - Xác định các cặp số hung tinh cần tránh
+  - Đưa ra gợi ý cải thiện mật khẩu về mặt phong thủy
+  - Đảm bảo bảo mật mật khẩu trong quá trình xử lý
 
 ### 3.2 Payment Agent
 

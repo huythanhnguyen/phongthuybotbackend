@@ -14,7 +14,10 @@ router.get('/', (req, res) => {
     endpoints: {
       analyze: 'POST /api/v2/bat-cuc-linh-so/analyze',
       phoneAnalysis: 'POST /api/v2/bat-cuc-linh-so/phone',
-      cccdAnalysis: 'POST /api/v2/bat-cuc-linh-so/cccd'
+      cccdAnalysis: 'POST /api/v2/bat-cuc-linh-so/cccd',
+      passwordAnalysis: 'POST /api/v2/bat-cuc-linh-so/password',
+      bankAccountAnalysis: 'POST /api/v2/bat-cuc-linh-so/bank-account',
+      bankAccountSuggestion: 'POST /api/v2/bat-cuc-linh-so/suggest-bank-account'
     }
   });
 });
@@ -35,10 +38,10 @@ router.post('/analyze', async (req, res) => {
       });
     }
 
-    if (!type || !['phone', 'cccd'].includes(type)) {
+    if (!type || !['phone', 'cccd', 'password', 'bank_account'].includes(type)) {
       return res.status(400).json({
         success: false,
-        message: 'Loại phân tích không hợp lệ. Vui lòng sử dụng "phone" hoặc "cccd"'
+        message: 'Loại phân tích không hợp lệ. Vui lòng sử dụng "phone", "cccd", "password" hoặc "bank_account"'
       });
     }
 
@@ -146,6 +149,139 @@ router.post('/cccd', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Đã xảy ra lỗi khi phân tích CCCD/CMND',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/v2/bat-cuc-linh-so/password
+ * @desc    Phân tích mật khẩu theo Bát Cục Linh Số
+ * @access  Public
+ */
+router.post('/password', async (req, res) => {
+  try {
+    const { password } = req.body;
+    
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp mật khẩu để phân tích'
+      });
+    }
+
+    // Kiểm tra độ dài mật khẩu
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mật khẩu quá ngắn, vui lòng cung cấp mật khẩu ít nhất 6 ký tự'
+      });
+    }
+
+    // Phân tích mật khẩu
+    const result = await batCucLinhSoService.analyzePassword(password);
+
+    // Trả về kết quả
+    res.status(200).json({
+      success: true,
+      message: 'Phân tích mật khẩu thành công',
+      result
+    });
+  } catch (error) {
+    console.error('Lỗi khi phân tích mật khẩu:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Đã xảy ra lỗi khi phân tích mật khẩu',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/v2/bat-cuc-linh-so/bank-account
+ * @desc    Phân tích số tài khoản ngân hàng theo Bát Cục Linh Số
+ * @access  Public
+ */
+router.post('/bank-account', async (req, res) => {
+  try {
+    const { accountNumber } = req.body;
+    
+    if (!accountNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp số tài khoản ngân hàng'
+      });
+    }
+
+    // Chuẩn hóa số tài khoản
+    const normalizedAccount = accountNumber.replace(/[^0-9]/g, '');
+
+    // Kiểm tra độ dài số tài khoản
+    if (normalizedAccount.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Số tài khoản không hợp lệ, vui lòng cung cấp số tài khoản hợp lệ'
+      });
+    }
+
+    // Phân tích số tài khoản
+    const result = await batCucLinhSoService.analyzeBankAccount(normalizedAccount);
+
+    // Trả về kết quả
+    res.status(200).json({
+      success: true,
+      message: 'Phân tích số tài khoản thành công',
+      result
+    });
+  } catch (error) {
+    console.error('Lỗi khi phân tích số tài khoản:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Đã xảy ra lỗi khi phân tích số tài khoản',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/v2/bat-cuc-linh-so/suggest-bank-account
+ * @desc    Gợi ý số tài khoản ngân hàng theo Bát Cục Linh Số
+ * @access  Public
+ */
+router.post('/suggest-bank-account', async (req, res) => {
+  try {
+    const { purpose, preferredDigits } = req.body;
+    
+    if (!purpose) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp mục đích sử dụng tài khoản'
+      });
+    }
+
+    // Kiểm tra mục đích
+    const validPurposes = ['business', 'personal', 'investment', 'saving', 'health'];
+    if (!validPurposes.includes(purpose)) {
+      return res.status(400).json({
+        success: false,
+        message: `Mục đích không hợp lệ. Vui lòng sử dụng một trong các giá trị: ${validPurposes.join(', ')}`
+      });
+    }
+
+    // Gợi ý số tài khoản
+    const result = await batCucLinhSoService.suggestBankAccountNumbers(purpose, preferredDigits || []);
+
+    // Trả về kết quả
+    res.status(200).json({
+      success: true,
+      message: 'Gợi ý số tài khoản thành công',
+      result
+    });
+  } catch (error) {
+    console.error('Lỗi khi gợi ý số tài khoản:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Đã xảy ra lỗi khi gợi ý số tài khoản',
       error: error.message
     });
   }

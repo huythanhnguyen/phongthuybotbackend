@@ -6,7 +6,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Cấu hình kết nối đến Python ADK
-const PYTHON_ADK_URL = process.env.PYTHON_ADK_URL || 'http://localhost:8000';
+const PYTHON_ADK_URL = process.env.PYTHON_ADK_URL || 'http://localhost:10000';
 const API_KEY = process.env.ADK_API_KEY || 'dev_key';
 
 // Lưu trữ session
