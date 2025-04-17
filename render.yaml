@@ -52,30 +52,21 @@ services:
     region: singapore
     plan: starter
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
-      - key: MONGODB_URI
-        sync: false
       - key: PYTHON_ADK_URL
-        value: https://phongthuybotadk.onrender.com
+        value: http://localhost:10000
       - key: ADK_API_KEY
-        sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: JWT_EXPIRE
-        value: 30d
-      - key: CLIENT_URL
-        value: https://phongthuyso.onrender.com
-      - key: GEMINI_API_KEY
-        sync: false
+        value: render_production_key
+    healthCheckPath: /api/health
 
   # Python ADK Service
   - type: web
-    name: phongthuybotadk
+    name: phongthuybotbackend-adk
     env: python
     region: singapore
     plan: starter
@@ -84,19 +75,5 @@ services:
     envVars:
       - key: PORT
         value: 10000
-      - key: HOST
-        value: 0.0.0.0
-      - key: LOG_LEVEL
-        value: INFO
-      - key: API_KEY
-        sync: false
-      - key: API_KEY_HEADER
-        value: X-API-Key
-      - key: GOOGLE_API_KEY
-        sync: false
-      - key: DEFAULT_MODEL
-        value: gemini-2.0-flash
-      - key: ROOT_AGENT_MODEL
-        value: gemini-2.0-flash
-      - key: BATCUCLINH_SO_AGENT_MODEL
-        value: gemini-2.0-flash 
+      - key: ADK_API_KEY
+        value: render_production_key 
