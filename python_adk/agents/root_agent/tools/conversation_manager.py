@@ -13,7 +13,7 @@ from datetime import datetime
 import time
 
 # Google ADK imports
-from google_adk.core.tool import Tool
+from adk.core.tool import Tool
 
 
 class ConversationManager(Tool):

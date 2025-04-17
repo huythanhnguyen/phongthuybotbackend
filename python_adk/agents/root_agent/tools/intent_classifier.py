@@ -13,7 +13,7 @@ from typing import Dict, Any, List, Optional
 from enum import Enum
 
 # Google ADK imports
-from google_adk.core.tool import Tool
+from adk.core.tool import Tool
 
 
 class AgentType(str, Enum):

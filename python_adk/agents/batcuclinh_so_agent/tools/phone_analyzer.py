@@ -7,7 +7,7 @@ import logging
 from typing import Dict, Any, List, Optional
 
 # Google ADK imports
-from google_adk.core.tool import Tool
+from adk.core.tool import Tool
 
 class PhoneAnalyzer(Tool):
     """Tool phân tích số điện thoại theo phương pháp Bát Cục Linh Số"""
