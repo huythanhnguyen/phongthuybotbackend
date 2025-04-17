@@ -65,7 +65,7 @@ Lấy thông tin tổng quan về API.
 {
   "message": "Chào mừng đến với Phong Thủy Số API v2",
   "version": "2.0.0",
-  "status": "development",
+  "status": "production",
   "endpoints": {
     "agent": "/api/v2/agent",
     "batCucLinhSo": "/api/v2/bat-cuc-linh-so",
@@ -303,7 +303,7 @@ Phân tích CCCD/CMND theo Bát Cục Linh Số.
 ```javascript
 async function streamChatResponse(message, sessionId) {
   try {
-    const response = await fetch('http://localhost:5000/api/v2/agent/stream', {
+    const response = await fetch('https://phongthuybotbackend.onrender.com/api/v2/agent/stream', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -356,39 +356,63 @@ async function streamChatResponse(message, sessionId) {
 }
 ```
 
-## Hướng dẫn Deployment
+## Deployment
 
-### Node.js Backend
+### Server đã được triển khai lên Render.com
 
-```bash
-# Cài đặt dependencies
-npm install
+API đã được triển khai tại:
+- **Production URL:** `https://phongthuybotbackend.onrender.com`
 
-# Thiết lập biến môi trường
-# - Tạo file .env từ .env.example
-# - Cập nhật thông tin cấu hình
+### Cấu hình hệ thống
 
-# Khởi động server
-npm start
+Server được cấu hình với:
+- **Node.js runtime:** v18.x
+- **Python ADK:** v3.10+
+- **Database:** MongoDB Atlas (tùy chọn)
+
+### Cấu trúc Dự án
+
 ```
-
-### Python ADK
-
-```bash
-# Đi đến thư mục Python ADK
-cd python_adk
-
-# Cài đặt dependencies
-pip install -r requirements.txt
-
-# Thiết lập biến môi trường
-# - Tạo file .env từ .env.example
-# - Cập nhật API Key
-
-# Khởi động Python ADK
-python main.py
+phongthuybotbackend/
+├── api/                  # API routes và controllers
+│   └── v2/               # API version 2
+│       ├── controllers/  # Logic xử lý request
+│       ├── middleware/   # Middleware
+│       ├── routes/       # Định nghĩa routes
+│       └── services/     # Business logic
+├── constants/            # Các hằng số
+├── config/               # Cấu hình
+├── python_adk/           # Python ADK integration
+│   ├── a2a/              # Agent-to-agent communication
+│   ├── agents/           # Agent implementations
+│   ├── mcp/              # Multi-component protocol
+│   └── main.py           # FastAPI entry point
+├── services/             # Shared services
+├── .env.example          # Template cho biến môi trường
+├── server.js             # Entry point
+└── package.json          # Node.js dependencies
 ```
 
 ## Fallback Mechanism
 
 API được thiết kế để vẫn hoạt động khi Python ADK chưa khởi động. Trong trường hợp này, Node.js backend sẽ xử lý các yêu cầu và trả về kết quả phân tích cơ bản.
+
+### Các tính năng dự phòng
+
+- **Phân tích số điện thoại:** Tính toán tổng số, rút gọn, và xác định ngũ hành
+- **Phân tích CCCD:** Tính toán tổng số, rút gọn, ngũ hành, và trích xuất thông tin cơ bản từ CCCD 12 số
+
+## Quản lý Phiên (Sessions)
+
+Hệ thống hỗ trợ quản lý phiên để duy trì cuộc hội thoại:
+
+- Mỗi phiên được định danh bởi một `sessionId` duy nhất
+- Nếu không cung cấp `sessionId`, hệ thống sẽ tự động tạo ID mới
+- Lịch sử hội thoại được lưu trữ tạm thời trong bộ nhớ server
+
+## Hạn chế & Phát triển Tương lai
+
+1. **Chứng thực (Authentication):** Hiện tại chưa có hệ thống chứng thực, sẽ bổ sung trong phiên bản tiếp theo
+2. **Database:** Hỗ trợ lưu trữ dữ liệu vào MongoDB (cần cấu hình trong `.env`)
+3. **Mở rộng Agent:** Thêm các chuyên gia phong thủy khác
+4. **Tích hợp LLM:** Cải thiện khả năng phân tích với các mô hình ngôn ngữ lớn

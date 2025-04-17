@@ -1,127 +1,136 @@
 # Phong Thủy Số - Backend API
 
-Backend API cho dự án "Phong Thủy Số" sử dụng kiến trúc Agent-based để phân tích số điện thoại, CCCD và các dữ liệu số học khác.
+Phong Thủy Số Backend API là hệ thống cung cấp các endpoint phân tích số điện thoại, CCCD/CMND theo phương pháp Bát Cục Linh Số, sử dụng kiến trúc agent-based.
 
-## Cài đặt
+## Deployed API
 
-### Yêu cầu
+API đã được triển khai tại:
+- **Production URL:** https://phongthuybotbackend.onrender.com
 
-- Node.js (v14 trở lên)
-- MongoDB (tùy chọn)
-- Python 3.9+ (cho ADK)
+## API Status
 
-### Cài đặt Node.js Backend
+Bạn có thể kiểm tra trạng thái hoạt động của API tại:
+- https://phongthuybotbackend.onrender.com/api/health
+
+## Kiến trúc
+
+Backend được xây dựng với hai thành phần chính:
+
+1. **Node.js Server**: Xử lý các HTTP requests, routing, và phân tích dự phòng nếu Python ADK chưa khởi động.
+
+2. **Python ADK**: Phần xử lý phân tích chuyên sâu, dựa trên kiến trúc Google Agent Development Kit, giao tiếp với Node.js server qua REST API.
+
+## Tính năng chính
+
+- **Root Agent API**: Xử lý tin nhắn đầu vào, định tuyến tới các expert agents
+- **Bát Cục Linh Số API**: Phân tích số điện thoại và CCCD/CMND
+- **Streaming API**: Hỗ trợ phản hồi dạng stream cho trải nghiệm người dùng mượt mà
+- **Fallback Mechanism**: Vẫn hoạt động khi Python ADK chưa khởi động
+- **Session Management**: Lưu trữ và quản lý phiên hội thoại
+
+## API Documentation
+
+Chi tiết về các endpoints và cách sử dụng API có thể tìm thấy trong file [interface.md](./interface.md).
+
+## Cấu trúc dự án
+
+```
+phongthuybotbackend/
+├── api/                  # API routes và controllers
+│   └── v2/               # API version 2
+│       ├── controllers/  # Logic xử lý request
+│       ├── middleware/   # Middleware
+│       ├── routes/       # Định nghĩa routes
+│       └── services/     # Business logic
+├── constants/            # Các hằng số
+├── config/               # Cấu hình
+├── python_adk/           # Python ADK integration
+│   ├── a2a/              # Agent-to-agent communication
+│   ├── agents/           # Agent implementations
+│   ├── mcp/              # Multi-component protocol
+│   └── main.py           # FastAPI entry point
+├── services/             # Shared services
+├── .env.example          # Template cho biến môi trường
+├── server.js             # Entry point
+└── package.json          # Node.js dependencies
+```
+
+## Development Setup
 
 ```bash
-# Clone repository
-git clone https://github.com/youruser/phongthuybotbackend.git
-cd phongthuybotbackend
-
 # Cài đặt dependencies
 npm install
 
-# Tạo file .env
+# Tạo file .env từ template
 cp .env.example .env
-# Sửa file .env để phù hợp với môi trường
 
-# Chạy server
-npm run dev
+# Khởi động server
+npm start
 ```
 
-### Cài đặt Python ADK (Agent Development Kit)
+## Python ADK Setup
 
 ```bash
-# Di chuyển vào thư mục Python ADK
+# Đi đến thư mục Python ADK
 cd python_adk
-
-# Tạo virtual environment
-python -m venv venv
-source venv/bin/activate  # Trên Windows: venv\Scripts\activate
 
 # Cài đặt dependencies
 pip install -r requirements.txt
 
-# Tạo file .env
+# Tạo file .env từ template
 cp .env.example .env
-# Sửa file .env để phù hợp với môi trường
 
-# Chạy Python ADK
+# Khởi động Python ADK
 python main.py
 ```
 
-## Kiến trúc Agent
+## Kết nối Frontend
 
-### Root Agent
+Frontend có thể kết nối đến API theo các cách:
 
-Root Agent đóng vai trò điều phối, nhận yêu cầu từ người dùng và chuyển hướng đến agent chuyên biệt thích hợp.
+1. **Regular API Calls**: Sử dụng phương thức fetch hoặc axios
+2. **Streaming**: Sử dụng Server-Sent Events (SSE)
 
-### Bát Cục Linh Số Agent
+Ví dụ streaming với JavaScript:
 
-Agent chuyên phân tích số điện thoại, CCCD/CMND, STK ngân hàng, mật khẩu theo phương pháp Bát Cục Linh Số.
+```javascript
+async function streamChatResponse(message, sessionId) {
+  const response = await fetch('https://phongthuybotbackend.onrender.com/api/v2/agent/stream', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message,
+      sessionId,
+    }),
+  });
 
-## API Endpoints
-
-### Root Agent
-
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    
+    const chunk = decoder.decode(value);
+    // Xử lý chunk dữ liệu
+    // ...
+  }
+}
 ```
-GET /api/v2/agent
-POST /api/v2/agent/chat
-POST /api/v2/agent/stream
-POST /api/v2/agent/query
-```
 
-### Bát Cục Linh Số
+## Deployment
 
-```
-GET /api/v2/bat-cuc-linh-so
-POST /api/v2/bat-cuc-linh-so/analyze
-POST /api/v2/bat-cuc-linh-so/phone
-POST /api/v2/bat-cuc-linh-so/cccd
-```
+API được triển khai trên Render.com với các cấu hình:
+- Node.js web service
+- Auto-deploy từ GitHub repository
+- Environment variables được cấu hình trong Render Dashboard
 
-## Ví dụ sử dụng API
+## Testing
 
-### Phân tích số điện thoại
+Sử dụng script test-api.js để kiểm tra các endpoints:
 
 ```bash
-curl -X POST http://localhost:5000/api/v2/bat-cuc-linh-so/phone \
-  -H "Content-Type: application/json" \
-  -d '{"phoneNumber": "0987654321"}'
+node test-api.js
 ```
-
-### Gửi tin nhắn đến Root Agent
-
-```bash
-curl -X POST http://localhost:5000/api/v2/agent/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Phân tích số điện thoại 0987654321", "sessionId": "session123"}'
-```
-
-### Truy vấn trực tiếp đến Bát Cục Linh Số Agent
-
-```bash
-curl -X POST http://localhost:5000/api/v2/agent/query \
-  -H "Content-Type: application/json" \
-  -d '{"agentType": "batcuclinh_so", "query": "Phân tích số CCCD 012345678901"}'
-```
-
-## Chức năng dự phòng (Fallback)
-
-API được thiết kế để hoạt động ngay cả khi Python ADK chưa khởi động. Khi Python ADK không khả dụng, hệ thống sẽ sử dụng chức năng dự phòng trong Node.js để cung cấp kết quả cơ bản.
-
-## Cấu trúc thư mục
-
-```
-/
-├── api/               # API endpoints
-│   ├── middleware/    # Middleware chung
-│   └── v2/            # API v2
-│       ├── middleware/# Middleware API v2
-│       ├── routes/    # Route handlers 
-│       └── services/  # Business logic
-├── services/          # Core services
-├── python_adk/        # Python Agent Development Kit
-│   ├── agents/        # Agent definitions
-│   ├── a2a/           # Agent-to-Agent protocol
-│   └── utils/         # Utility modules
-└── config/            # Configuration 
