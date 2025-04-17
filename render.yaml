@@ -71,7 +71,7 @@ services:
     region: singapore
     plan: starter
     buildCommand: pip install -r python_adk/requirements.txt
-    startCommand: cd python_adk && python main.py
+    startCommand: cd /opt/render/project/src && uvicorn python_adk.asgi:application --host 0.0.0.0 --port 10000
     envVars:
       - key: PORT
         value: 10000

@@ -235,16 +235,17 @@ async def analyze_cccd(request: CCCDRequest):
         }
         element = element_map.get(reduced_sum, "Không xác định")
         
-        # Phân tích thông tin từ CCCD
+        # Phân tích thông tin CCCD
         info = {}
         if len(cccd) == 12:  # CCCD 12 số
-            province_code = cccd[:3]
+            province_code = int(cccd[:3])
             gender_code = int(cccd[3])
             birth_year = cccd[4:6]
             
-            # Xác định giới tính và thế kỷ
+            # Xác định giới tính và thế kỷ sinh
             gender = "Nam" if gender_code % 2 == 0 else "Nữ"
-            century = ""
+            century = "19"  # Mặc định thế kỷ 20
+            
             if gender_code in [0, 1]:
                 century = "19"
             elif gender_code in [2, 3]:
@@ -295,4 +296,7 @@ async def analyze_cccd(request: CCCDRequest):
 # Khởi động server khi chạy trực tiếp
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 10000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True) 
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+else:
+    # Khi được import bởi uvicorn, sử dụng app object
+    pass 
