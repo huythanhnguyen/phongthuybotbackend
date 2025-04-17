@@ -29,12 +29,10 @@ app.use(morgan('dev'));
 // Import routes
 const batCucLinhSoRoutes = require('./api/v2/routes/bat-cuc-linh-so');
 const rootAgentRoutes = require('./api/v2/routes/root-agent');
-const authRoutes = require('./api/v2/routes/auth');
 
 // Routes
 app.use('/api/v2/bat-cuc-linh-so', batCucLinhSoRoutes);
 app.use('/api/v2/agent', rootAgentRoutes);
-app.use('/api/v2/auth', authRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -55,7 +53,6 @@ app.get('/', (req, res) => {
     endpoints: {
       agent: '/api/v2/agent',
       batCucLinhSo: '/api/v2/bat-cuc-linh-so',
-      auth: '/api/v2/auth',
       health: '/api/health'
     }
   });

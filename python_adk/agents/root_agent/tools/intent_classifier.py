@@ -5,15 +5,12 @@ Tool này phân tích nội dung tin nhắn của người dùng để xác đ�
 agent phù hợp để xử lý yêu cầu.
 """
 
-import os
-import json
-import logging
 import re
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from enum import Enum
 
 # Google ADK imports
-from google.adk.tools import Tool
+from adk.core.tool import Tool
 
 
 class AgentType(str, Enum):

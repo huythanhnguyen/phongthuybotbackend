@@ -1,21 +1,19 @@
 """
-BatCucLinhSo Agent - Phân tích số điện thoại, CCCD, số tài khoản theo Bát Cục Linh Số
+BatCucLinhSo Agent - Chuyên phân tích số điện thoại, CCCD, STK ngân hàng theo phương pháp Bát Cục Linh Số
 
-BatCucLinhSo Agent là expert agent chuyên biệt, phân tích các dãy số
-theo phương pháp Bát Cục Linh Số.
+BatCucLinhSo Agent là agent chuyên biệt phân tích các con số (điện thoại, CCCD, STK, mật khẩu)
+theo phương pháp Bát Cục Linh Số, đưa ra ý nghĩa và lời khuyên.
 """
 
 import os
-import json
 import logging
 from typing import Dict, Any, List, Optional
 import re
 
 # Google ADK imports
-from google.adk.agents import Agent
-from google.adk.agents import Builder as AgentBuilder
-from google.adk.models.lite_llm import LiteLlm as LLMGenerator
-from google.adk.contexts import ContextManager
+from adk.core.agent import Agent
+from adk.core.agent_builder import AgentBuilder
+from adk.generators.llm import LLMGenerator
 
 # A2A Protocol imports
 from python_adk.a2a.protocol import Task, Message, Artifact, Part, TaskStatus, Role, PartType

@@ -5,14 +5,11 @@ Tool này lưu trữ và quản lý context của cuộc trò chuyện để cun
 thông tin liên tục giữa các lượt tương tác.
 """
 
-import os
-import json
-import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 # Google ADK imports
-from google.adk.tools import Tool
+from adk.core.tool import Tool
 
 
 class ContextTracker(Tool):

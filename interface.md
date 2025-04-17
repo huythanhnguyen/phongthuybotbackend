@@ -18,7 +18,7 @@ Hệ thống sử dụng kiến trúc hai lớp:
 
 ## Authentication
 
-Hiện tại, API chưa yêu cầu xác thực cho các endpoint phân tích. API xác thực (Authentication) đã được thêm vào để hỗ trợ đăng ký, đăng nhập và quản lý tài khoản người dùng.
+Hiện tại, API chưa yêu cầu xác thực. Xác thực sẽ được bổ sung trong các phiên bản tiếp theo.
 
 ## Định dạng Response
 
@@ -77,157 +77,8 @@ Lấy thông tin tổng quan về API.
   "endpoints": {
     "agent": "/api/v2/agent",
     "batCucLinhSo": "/api/v2/bat-cuc-linh-so",
-    "auth": "/api/v2/auth",
     "health": "/api/health"
   }
-}
-```
-
-### Authentication API
-
-#### GET /api/v2/auth
-
-Lấy thông tin về API Authentication.
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Phong Thủy Số - Auth API",
-  "version": "2.0.0",
-  "endpoints": {
-    "login": "POST /api/v2/auth/login",
-    "register": "POST /api/v2/auth/register",
-    "logout": "POST /api/v2/auth/logout",
-    "me": "GET /api/v2/auth/me",
-    "changePassword": "POST /api/v2/auth/change-password"
-  }
-}
-```
-
-#### POST /api/v2/auth/register
-
-Đăng ký tài khoản mới.
-
-**Request Body:**
-
-```json
-{
-  "name": "Nguyen Van A",
-  "email": "nguyenvana@example.com",
-  "password": "password123"
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Đăng ký thành công",
-  "token": "jwt_token_here",
-  "user": {
-    "id": "user_id",
-    "name": "Nguyen Van A",
-    "email": "nguyenvana@example.com",
-    "role": "user",
-    "created_at": "2023-05-15T10:30:00Z"
-  }
-}
-```
-
-#### POST /api/v2/auth/login
-
-Đăng nhập và lấy token.
-
-**Request Body:**
-
-```json
-{
-  "email": "nguyenvana@example.com",
-  "password": "password123"
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Đăng nhập thành công",
-  "token": "jwt_token_here",
-  "user": {
-    "id": "user_id",
-    "name": "Nguyen Van A",
-    "email": "nguyenvana@example.com",
-    "role": "user",
-    "created_at": "2023-05-15T10:30:00Z"
-  },
-  "sessionId": "session123"
-}
-```
-
-#### POST /api/v2/auth/logout
-
-Đăng xuất và hủy token.
-
-**Headers:**
-- Authorization: Bearer jwt_token_here
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Đăng xuất thành công"
-}
-```
-
-#### GET /api/v2/auth/me
-
-Lấy thông tin người dùng hiện tại.
-
-**Headers:**
-- Authorization: Bearer jwt_token_here
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "user": {
-    "id": "user_id",
-    "name": "Nguyen Van A",
-    "email": "nguyenvana@example.com",
-    "role": "user",
-    "created_at": "2023-05-15T10:30:00Z"
-  }
-}
-```
-
-#### POST /api/v2/auth/change-password
-
-Thay đổi mật khẩu.
-
-**Headers:**
-- Authorization: Bearer jwt_token_here
-
-**Request Body:**
-
-```json
-{
-  "currentPassword": "password123",
-  "newPassword": "newpassword456"
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "message": "Thay đổi mật khẩu thành công"
 }
 ```
 
@@ -472,6 +323,7 @@ Phân tích CCCD/CMND theo Bát Cục Linh Số.
     "cccd_number": "012345678901",
     "content": "Phân tích số CCCD: 012345678901\n\nTổng số (Lộ số): 3 - Ngũ hành: Mộc\n\nThông tin cá nhân:\n- Tỉnh/Thành phố: Hà Nội\n- Giới tính: Nữ\n- Năm sinh: 2001\n- Mã ngẫu nhiên: 45678901\n\nCác cặp số đặc biệt:\n- Cặp số giống nhau: Không có\n- Cặp số liền kề tăng dần: 1-2(12), 2-3(23), 3-4(34), 4-5(45), 5-6(56), 6-7(67), 7-8(78), 8-9(89), 9-10(90)\n- Cặp số liền kề đảo ngược: Không có\n- Cặp số tốt: 3-4(34), 6-7(67), 8-9(89)\n\nĐiểm mạnh:\n- Nhiều cặp số tăng dần liên tiếp thể hiện sự phát triển thuận lợi\n- Mộc mạnh, thích hợp cho sáng tạo và phát triển cá nhân\n- Có nhiều cặp số tốt mang lại may mắn trong học tập và sự nghiệp\n\nĐiểm yếu:\n- Một số cặp số thiếu cân bằng, có thể gây ra bất ổn trong các mối quan hệ\n- Thiếu yếu tố Kim và Thủy\n\nĐánh giá tổng thể: Tốt (7/10)\nSố CCCD này mang nhiều năng lượng tích cực, đặc biệt thuận lợi cho học tập, sáng tạo và sự phát triển. Người sở hữu số này có thể gặp thuận lợi trong sự nghiệp nghệ thuật, giáo dục hoặc các ngành cần sự sáng tạo.\n\nLời khuyên: Phát huy các điểm mạnh về sáng tạo và học tập, đồng thời cần chú ý cân bằng trong các mối quan hệ cá nhân.",
     "info": {
+      "type": "CCCD",
       "province": "Hà Nội",
       "gender": "Nữ",
       "birth_year": "2001",
@@ -874,7 +726,6 @@ phongthuybotbackend/
 │   ├── a2a/              # Agent-to-agent communication
 │   ├── agents/           # Agent implementations
 │   │   ├── root_agent/   # Root Agent xử lý điều phối
-│   │   ├── auth_agent/   # Auth Agent xử lý xác thực
 │   │   └── batcuclinh_so_agent/ # Agent phân tích Bát Cục Linh Số
 │   │       ├── tools/    # Công cụ phân tích (PhoneAnalyzer, CCCDAnalyzer)
 │   │       └── prompts/  # Prompts và hướng dẫn cho agent
@@ -918,7 +769,7 @@ Cấu trúc dữ liệu phiên trong ADK:
 
 ## Phát triển Tương lai
 
-1. **Chứng thực (Authentication):** Triển khai hệ thống chứng thực JWT - **Đã hoàn thành**
+1. **Chứng thực (Authentication):** Triển khai hệ thống chứng thực JWT
 2. **Database Persistence:** Lưu trữ phiên và lịch sử phân tích vào MongoDB 
 3. **Mở rộng Agent:** Thêm các agents phân tích phong thủy theo Tứ Trụ, Kinh Dịch
 4. **Hệ thống subscription:** Triển khai hệ thống thanh toán và quản lý gói dịch vụ
