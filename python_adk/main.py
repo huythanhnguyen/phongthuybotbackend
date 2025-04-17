@@ -38,6 +38,12 @@ class QueryRequest(BaseModel):
     user_id: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = {}
 
+class PhoneRequest(BaseModel):
+    phone_number: str
+
+class CCCDRequest(BaseModel):
+    cccd_number: str
+
 # Khởi tạo FastAPI app
 app = FastAPI(
     title="Phong Thủy Số ADK Service",
@@ -53,6 +59,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Root endpoint
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {"message": "Phong Thủy Số ADK Service is running", "version": "0.1.0"}
 
 # Health check endpoint
 @app.get("/health")
@@ -149,6 +161,135 @@ async def query(request: QueryRequest):
         return response
     except Exception as e:
         logger.error(f"Error processing query request: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Bát Cục Linh Số - Phone Analysis Endpoint
+@app.post("/api/batcuclinh_so/phone")
+async def analyze_phone(request: PhoneRequest):
+    """Phân tích số điện thoại theo phương pháp Bát Cục Linh Số"""
+    try:
+        logger.info(f"Received phone analysis request: {request.phone_number}")
+        
+        # Chuẩn hóa số điện thoại
+        phone = request.phone_number.replace('+84', '0').strip()
+        
+        # Tính tổng các chữ số
+        sum_value = sum(int(digit) for digit in phone if digit.isdigit())
+        
+        # Rút gọn tổng thành số có 1 chữ số
+        reduced_sum = sum_value
+        while reduced_sum > 9:
+            reduced_sum = sum(int(digit) for digit in str(reduced_sum))
+        
+        # Xác định ngũ hành
+        element_map = {
+            1: "Kim", 2: "Thủy", 3: "Mộc", 
+            4: "Mộc", 5: "Thổ", 6: "Kim",
+            7: "Kim", 8: "Thổ", 9: "Hỏa"
+        }
+        element = element_map.get(reduced_sum, "Không xác định")
+        
+        # TODO: Implement more detailed analysis logic here
+        
+        return {
+            "success": True,
+            "phoneNumber": phone,
+            "totalValue": reduced_sum,
+            "element": element,
+            "analysis": f"""
+            Phân tích số điện thoại {phone}:
+            
+            Tổng giá trị: {sum_value} (Rút gọn: {reduced_sum})
+            Ngũ hành: {element}
+            
+            Đây là kết quả phân tích từ Python ADK.
+            """
+        }
+    except Exception as e:
+        logger.error(f"Error analyzing phone number: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Bát Cục Linh Số - CCCD Analysis Endpoint
+@app.post("/api/batcuclinh_so/cccd")
+async def analyze_cccd(request: CCCDRequest):
+    """Phân tích CCCD/CMND theo phương pháp Bát Cục Linh Số"""
+    try:
+        logger.info(f"Received CCCD analysis request: {request.cccd_number}")
+        
+        # Chuẩn hóa số CCCD
+        cccd = request.cccd_number.strip()
+        
+        # Tính tổng các chữ số
+        sum_value = sum(int(digit) for digit in cccd if digit.isdigit())
+        
+        # Rút gọn tổng thành số có 1 chữ số
+        reduced_sum = sum_value
+        while reduced_sum > 9:
+            reduced_sum = sum(int(digit) for digit in str(reduced_sum))
+        
+        # Xác định ngũ hành
+        element_map = {
+            1: "Kim", 2: "Thủy", 3: "Mộc", 
+            4: "Mộc", 5: "Thổ", 6: "Kim",
+            7: "Kim", 8: "Thổ", 9: "Hỏa"
+        }
+        element = element_map.get(reduced_sum, "Không xác định")
+        
+        # Phân tích thông tin từ CCCD
+        info = {}
+        if len(cccd) == 12:  # CCCD 12 số
+            province_code = cccd[:3]
+            gender_code = int(cccd[3])
+            birth_year = cccd[4:6]
+            
+            # Xác định giới tính và thế kỷ
+            gender = "Nam" if gender_code % 2 == 0 else "Nữ"
+            century = ""
+            if gender_code in [0, 1]:
+                century = "19"
+            elif gender_code in [2, 3]:
+                century = "20"
+            elif gender_code in [4, 5]:
+                century = "21"
+            
+            info = {
+                "type": "CCCD",
+                "provinceCode": province_code,
+                "gender": gender,
+                "birthYear": f"{century}{birth_year}",
+                "randomCode": cccd[6:]
+            }
+        elif len(cccd) == 9:  # CMND 9 số
+            info = {
+                "type": "CMND",
+                "note": "CMND 9 số không có cấu trúc cố định để trích xuất thông tin chi tiết"
+            }
+        
+        # TODO: Implement more detailed analysis logic here
+        
+        return {
+            "success": True,
+            "cccdNumber": cccd,
+            "totalValue": reduced_sum,
+            "element": element,
+            "info": info,
+            "analysis": f"""
+            Phân tích số {info.get('type', 'CCCD/CMND')}: {cccd}
+            
+            Tổng giá trị: {sum_value} (Rút gọn: {reduced_sum})
+            Ngũ hành: {element}
+            
+            {f"Thông tin cá nhân:" if info.get('type') == 'CCCD' else ''}
+            {f"- Mã tỉnh: {info.get('provinceCode')}" if info.get('type') == 'CCCD' else ''}
+            {f"- Giới tính: {info.get('gender')}" if info.get('type') == 'CCCD' else ''}
+            {f"- Năm sinh: {info.get('birthYear')}" if info.get('type') == 'CCCD' else ''}
+            {f"- Mã ngẫu nhiên: {info.get('randomCode')}" if info.get('type') == 'CCCD' else ''}
+            
+            Đây là kết quả phân tích từ Python ADK.
+            """
+        }
+    except Exception as e:
+        logger.error(f"Error analyzing CCCD/CMND: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Khởi động server khi chạy trực tiếp
