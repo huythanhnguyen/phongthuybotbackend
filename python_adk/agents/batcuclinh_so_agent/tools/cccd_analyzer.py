@@ -5,14 +5,15 @@ Tool này phân tích số Căn cước công dân/Chứng minh nhân dân theo 
 đưa ra ý nghĩa phong thủy và lời khuyên.
 """
 
-import re
 import os
 import logging
+import re
+import random
 from typing import Dict, Any, List, Optional, Tuple
 
 # Google ADK imports
-from adk.core.tool import Tool
-from adk.generators.llm import LLMGenerator
+from google_adk.core.tool import Tool
+from google_adk.generators.llm import LLMGenerator
 
 
 class CCCDAnalyzer(Tool):
