@@ -12,8 +12,8 @@ import random
 from typing import Dict, Any, List, Optional, Tuple
 
 # Google ADK imports
-from adk.core.tool import Tool
-from adk.generators.llm import LLMGenerator
+from google.adk.tools import Tool
+from google.adk.models.lite_llm import LiteLlm as LLMGenerator
 
 
 class CCCDAnalyzer(Tool):

@@ -12,10 +12,10 @@ from typing import Dict, Any, List, Optional
 import re
 
 # Google ADK imports
-from adk.core.agent import Agent
-from adk.core.agent_builder import AgentBuilder
-from adk.generators.llm import LLMGenerator
-from adk.managers.context import ContextManager
+from google.adk.agents import Agent
+from google.adk.agents import Builder as AgentBuilder
+from google.adk.models.lite_llm import LiteLlm as LLMGenerator
+from google.adk.contexts import ContextManager
 
 # A2A Protocol imports
 from python_adk.a2a.protocol import Task, Message, Artifact, Part, TaskStatus, Role, PartType

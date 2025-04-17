@@ -17,6 +17,14 @@ from pydantic import BaseModel
 # Tải biến môi trường
 load_dotenv()
 
+# Configure Google ADK environment
+os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "False"
+if not os.environ.get("GOOGLE_API_KEY"):
+    # Set a default API key or load from environment
+    api_key = os.environ.get("ADK_API_KEY", "")
+    if api_key:
+        os.environ["GOOGLE_API_KEY"] = api_key
+
 # Thiết lập logging
 logging.basicConfig(
     level=logging.INFO,
