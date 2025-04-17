@@ -59,21 +59,37 @@ services:
       - key: PORT
         value: 10000
       - key: PYTHON_ADK_URL
-        value: http://localhost:10000
+        value: http://localhost:8000
       - key: ADK_API_KEY
         value: render_production_key
     healthCheckPath: /api/health
 
   # Python ADK Service
   - type: web
-    name: phongthuybotbackend-adk
+    name: phongthuybotadk
     env: python
     region: singapore
     plan: starter
     buildCommand: pip install -r python_adk/requirements.txt
-    startCommand: cd /opt/render/project/src && uvicorn python_adk.asgi:application --host 0.0.0.0 --port 10000
+    startCommand: cd /opt/render/project/src && python -m uvicorn python_adk.asgi:application --host 0.0.0.0 --port 10000
     envVars:
       - key: PORT
         value: 10000
-      - key: ADK_API_KEY
-        value: render_production_key 
+      - key: HOST
+        value: 0.0.0.0
+      - key: LOG_LEVEL
+        value: INFO
+      - key: API_KEY
+        value: render_production_key
+      - key: API_KEY_HEADER
+        value: X-API-Key
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: DEFAULT_MODEL
+        value: gemini-pro
+      - key: ROOT_AGENT_MODEL
+        value: gemini-pro
+      - key: BATCUCLINH_SO_AGENT_MODEL
+        value: gemini-pro
+      - key: PYTHONPATH
+        value: /opt/render/project/src 
