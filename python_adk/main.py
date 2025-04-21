@@ -54,7 +54,7 @@ app = FastAPI(
 # Cấu hình CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Thay bằng domain thực tế trong production
+    allow_origins=["https://phongthuybotadk.onrender.com"],  # Thay bằng domain thực tế trong production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
