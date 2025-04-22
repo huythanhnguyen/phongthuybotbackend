@@ -5,10 +5,10 @@ Phone Analyzer: Tool để phân tích số điện thoại theo phương pháp 
 import re
 from typing import Dict, Any, List, Optional
 # Sử dụng Google ADK FunctionTool thay vì Tool class tự định nghĩa
-from google.adk.tools import FunctionTool, ToolContext
+from google.adk.tools import FunctionTool
 import os
 from python_adk.constants.bat_tinh import BAT_TINH
-from python_adk.constants.combinations import COMBINATIONS
+from python_adk.constants.combinations import COMBINATIONS, COMBINATION_INTERPRETATIONS
 from python_adk.constants.digit_meanings import DIGIT_MEANINGS
 from python_adk.constants.response_factors import RESPONSE_FACTORS
 
@@ -16,7 +16,7 @@ class PhoneAnalyzer:
     """Class để phân tích số điện thoại theo phương pháp Bát Cục Linh Số"""
     
     @staticmethod
-    def analyze_phone_number(phone_number: str, purpose: Optional[str] = None, tool_context: Optional[ToolContext] = None) -> Dict[str, Any]:
+    def analyze_phone_number(phone_number: str, purpose: Optional[str] = None) -> Dict[str, Any]:
         """Phân tích số điện thoại theo phương pháp Bát Cục Linh Số để xác định ý nghĩa phong thủy
         
         Sử dụng tool này khi người dùng yêu cầu phân tích số điện thoại theo phong thủy hoặc muốn biết ý nghĩa của số điện thoại.
@@ -24,7 +24,6 @@ class PhoneAnalyzer:
         Args:
             phone_number: Số điện thoại cần phân tích. Có thể chứa các ký tự đặc biệt như dấu cách, dấu gạch ngang.
             purpose: Mục đích sử dụng số điện thoại (ví dụ: kinh doanh, cá nhân, tài lộc, tình cảm, sự nghiệp). Có thể bỏ trống.
-            tool_context: Context của tool, được tự động truyền vào bởi ADK framework.
             
         Returns:
             Dict[str, Any]: Kết quả phân tích, bao gồm:
@@ -37,103 +36,62 @@ class PhoneAnalyzer:
                     - starCombinations: Các tổ hợp sao liền kề
                     - keyPositions: Các vị trí đặc biệt trong số điện thoại
         """
-        # Chuẩn hóa số điện thoại
-        normalized = PhoneAnalyzer._normalize_phone_number(phone_number)
-        
-        # Kiểm tra độ dài
-        if len(normalized) < 9 or len(normalized) > 11:
+        try:
+            # Validate phone number
+            if not phone_number.isdigit() or len(phone_number) != 10:
+                raise ValueError("Invalid phone number format. Must be 10 digits.")
+
+            # Extract relevant numbers
+            network_code = phone_number[0:3]
+            subscriber_number = phone_number[3:10]
+
+            # Calculate Bát Tinh numbers
+            bat_tinh_numbers = []
+            for i in range(0, 10, 2):
+                pair = phone_number[i:i+2]
+                bat_tinh_numbers.append(pair)
+
+            # Analyze each pair
+            analysis = []
+            for number in bat_tinh_numbers:
+                for tinh, info in BAT_TINH.items():
+                    if number in info["numbers"]:
+                        analysis.append({
+                            "number": number,
+                            "tinh": tinh,
+                            "name": info["name"],
+                            "description": info["description"],
+                            "energy": info["energy"],
+                            "position": info["position"],
+                            "nature": info["nature"]
+                        })
+                        break
+
+            # Analyze combinations
+            combinations = []
+            for i in range(len(analysis) - 1):
+                current = analysis[i]
+                next_tinh = analysis[i + 1]
+                combination_key = f"{current['tinh']}_{next_tinh['tinh']}"
+                
+                if combination_key in COMBINATION_INTERPRETATIONS:
+                    combinations.append({
+                        "numbers": f"{current['number']}-{next_tinh['number']}",
+                        "combination": combination_key,
+                        "description": COMBINATION_INTERPRETATIONS[combination_key]["description"],
+                        "detailed_description": COMBINATION_INTERPRETATIONS[combination_key]["detailed_description"]
+                    })
+
             return {
-                "success": False,
-                "message": f"Số điện thoại không hợp lệ: {phone_number}"
+                "phone_number": phone_number,
+                "network_code": network_code,
+                "subscriber_number": subscriber_number,
+                "analysis": analysis,
+                "combinations": combinations,
+                "purpose": purpose
             }
-        
-        # Phân tích số điện thoại theo Bát Cục Linh Số
-        star_sequence = PhoneAnalyzer._map_to_star_sequence(normalized)
-        
-        # Tính năng lượng
-        total_energy = sum(x["energyLevel"] for x in star_sequence)
-        cat = sum(1 for x in star_sequence if x["nature"] == "Cát")
-        hung = sum(1 for x in star_sequence if x["nature"] == "Hung")
-        ratio = cat / (cat + hung) if (cat + hung) else 0
-        balance = "Cân bằng" if abs(cat - hung) < 2 else ("Dương thịnh" if cat > hung else "Âm thịnh")
-        energy_levels = {"total": total_energy, "cat": cat, "hung": hung, "ratio": ratio}
-        
-        # Tổ hợp sao liền kề
-        combos = []
-        for i in range(len(star_sequence) - 1):
-            f = star_sequence[i]; s = star_sequence[i+1]
-            key = f"{f['star']}_{s['star']}"
-            comb = COMBINATIONS.get("STAR_PAIRS", {}).get(key, {})
-            combos.append({
-                "firstStar": {"name": f['name'], "nature": f['nature'], "originalPair": f['originalPair'], "energyLevel": f['energyLevel']},
-                "secondStar": {"name": s['name'], "nature": s['nature'], "originalPair": s['originalPair'], "energyLevel": s['energyLevel']},
-                "key": key,
-                "description": comb.get("description", ""),
-                "detailedDescription": comb.get("detailedDescription", []),
-                "totalEnergy": f['energyLevel'] + s['energyLevel'],
-                "isPositive": f['nature'] == "Cát" and s['nature'] == "Cát",
-                "isNegative": f['nature'] == "Hung" and s['nature'] == "Hung",
-                "position": f"{i+1}-{i+2}",
-                "isLastPair": i == len(star_sequence) - 2
-            })
-        
-        # Vị trí đặc biệt
-        kp = {}
-        ln = len(normalized)
-        kp['lastDigit'] = {"value": normalized[-1], "meaning": DIGIT_MEANINGS.get("SINGLE_DIGIT_MEANINGS", {}).get(normalized[-1], ""), "position": "Vị trí cuối cùng"}
-        if ln >= 3:
-            d3 = normalized[-3]
-            kp['thirdFromEnd'] = {"value": d3, "meaning": DIGIT_MEANINGS.get("THIRD_FROM_END_MEANINGS", {}).get(d3, ""), "position": "Vị trí thứ 3 từ cuối"}
-        if ln >= 5:
-            d5 = normalized[-5]
-            kp['fifthFromEnd'] = {"value": d5, "meaning": DIGIT_MEANINGS.get("FIFTH_FROM_END_MEANINGS", {}).get(d5, ""), "position": "Vị trí thứ 5 từ cuối"}
-        
-        # Phân tích 3 số cuối
-        last3 = normalized[-3:]
-        p1, p2 = last3[:2], last3[1:]
-        info1 = next((x for x in star_sequence if x['originalPair'] == p1), {})
-        info2 = next((x for x in star_sequence if x['originalPair'] == p2), {})
-        ck = f"{info1.get('star')}_{info2.get('star')}"
-        cinfo = COMBINATIONS.get("STAR_PAIRS", {}).get(ck, {})
-        last3analysis = {
-            "lastThreeDigits": last3,
-            "firstPair": {"pair": p1, "starInfo": info1},
-            "secondPair": {"pair": p2, "starInfo": info2},
-            "specialCombination": None,
-            "starCombination": {"key": ck, "name": ck.replace("_"," + "), "description": cinfo.get("description",""), "detailedDescription": cinfo.get("detailedDescription",[])},
-            "hasSpecialMeaning": True
-        }
-        
-        # Phân tích mục đích sử dụng nếu có
-        purpose_analysis = None
-        if purpose:
-            purpose_analysis = PhoneAnalyzer._analyze_purpose_compatibility(star_sequence, purpose)
-        
-        # Tạo kết quả phân tích
-        analysis = {
-            "result": {
-                "starSequence": star_sequence, 
-                "energyLevel": energy_levels, 
-                "balance": balance, 
-                "starCombinations": combos, 
-                "keyCombinations": [], 
-                "dangerousCombinations": [], 
-                "keyPositions": kp, 
-                "last3DigitsAnalysis": last3analysis, 
-                "specialAttribute": "",
-                "purposeAnalysis": purpose_analysis
-            }
-        }
-        
-        # Nếu có tool_context, lưu kết quả phân tích vào state
-        if tool_context:
-            tool_context.state["last_phone_analysis"] = {
-                "number": normalized,
-                "energy_level": energy_levels,
-                "balance": balance
-            }
-        
-        return {"success": True, "analysis": analysis}
+        except Exception as e:
+            raise ValueError(f"Error analyzing phone number: {str(e)}")
 
     @staticmethod
     def _normalize_phone_number(phone: str) -> str:
@@ -295,4 +253,8 @@ class PhoneAnalyzer:
         }
 
 # Tạo Function Tool thay vì class tự định nghĩa
-phone_analyzer_tool = FunctionTool(func=PhoneAnalyzer.analyze_phone_number) 
+phone_analyzer_tool = FunctionTool(
+    name="phone_analyzer",
+    description="Analyze phone numbers using Bát Cục Linh Số method",
+    function=PhoneAnalyzer.analyze_phone_number
+) 
