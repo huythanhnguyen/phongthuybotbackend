@@ -83,7 +83,6 @@ def analyze_cccd_number(cccd_number: str, purpose: Optional[str] = None) -> Dict
 
 # Create the tool
 cccd_analyzer_tool = FunctionTool(
-    name="cccd_analyzer",
-    description="Analyze CCCD numbers using Bát Cục Linh Số method",
-    function=analyze_cccd_number
+    function=analyze_cccd_number,
+    description="Analyze CCCD numbers using Bát Cục Linh Số method"
 ) 
