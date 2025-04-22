@@ -4,11 +4,13 @@ Main entry point for the Phong Thủy Số API
 
 from fastapi import FastAPI, HTTPException, Depends, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import uvicorn
 import os
+import json
+import asyncio
 from dotenv import load_dotenv
 
 # Import Google ADK components
@@ -82,6 +84,7 @@ class ChatRequest(BaseModel):
     session_id: Optional[str] = None
     user_id: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    stream: Optional[bool] = False
 
 class PhoneAnalysisRequest(BaseModel):
     phone_number: str
@@ -123,10 +126,59 @@ async def root():
         "description": "API for analyzing phone numbers and CCCD numbers using Bát Cục Linh Số method"
     }
 
+async def stream_response(message):
+    """Stream the agent response in chunks"""
+    try:
+        response = await agent.process_message(message)
+        # Split the response into words to simulate streaming
+        words = response.split(" ")
+        
+        # Send chunks of words
+        current_chunk = ""
+        for word in words:
+            current_chunk += word + " "
+            
+            # Every few words, send a chunk
+            if len(current_chunk.split()) >= 3:
+                chunk_data = {
+                    "type": "chunk",
+                    "content": current_chunk
+                }
+                yield f"data: {json.dumps(chunk_data)}\n\n"
+                await asyncio.sleep(0.1)  # Small delay to simulate typing
+                current_chunk = ""
+        
+        # Send any remaining text
+        if current_chunk:
+            chunk_data = {
+                "type": "chunk",
+                "content": current_chunk
+            }
+            yield f"data: {json.dumps(chunk_data)}\n\n"
+        
+        # Send completion message
+        complete_data = {
+            "type": "complete"
+        }
+        yield f"data: {json.dumps(complete_data)}\n\n"
+    except Exception as e:
+        error_data = {
+            "type": "error",
+            "error": str(e)
+        }
+        yield f"data: {json.dumps(error_data)}\n\n"
+
 @app.post("/chat")
 async def chat(request: ChatRequest):
     try:
-        # Process the message using the agent
+        # Check if streaming is requested
+        if request.stream:
+            return StreamingResponse(
+                stream_response(request.message),
+                media_type="text/event-stream"
+            )
+        
+        # Process the message using the agent (non-streaming)
         response = await agent.process_message(request.message)
         return {
             "success": True,
@@ -136,6 +188,14 @@ async def chat(request: ChatRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/chat/stream")
+async def chat_stream(request: ChatRequest):
+    """Endpoint for streaming chat responses"""
+    return StreamingResponse(
+        stream_response(request.message),
+        media_type="text/event-stream"
+    )
 
 @app.post("/analyze/phone")
 async def analyze_phone(request: PhoneAnalysisRequest):
