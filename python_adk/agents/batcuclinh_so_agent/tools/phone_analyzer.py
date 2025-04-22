@@ -264,5 +264,5 @@ def phone_analyzer(phone_number: str, purpose: Optional[str] = None) -> Dict[str
     """
     return PhoneAnalyzer.analyze_phone_number(phone_number, purpose)
 
-# Tạo Function Tool thay vì class tự định nghĩa
+# Tạo Function Tool
 phone_analyzer_tool = FunctionTool(phone_analyzer) 

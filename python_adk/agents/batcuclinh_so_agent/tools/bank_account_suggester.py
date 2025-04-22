@@ -154,8 +154,4 @@ def bank_account_suggester(
     }
 
 # Tạo Function Tool
-bank_account_suggester_tool = FunctionTool(
-    name="bank_account_suggester",
-    description="Gợi ý số tài khoản ngân hàng dựa trên phương pháp Bát Cục Linh Số",
-    function=bank_account_suggester
-) 
+bank_account_suggester_tool = FunctionTool(bank_account_suggester) 

@@ -66,8 +66,4 @@ def password_analyzer(password: str) -> Dict[str, Any]:
     }
 
 # Tạo Function Tool
-password_analyzer_tool = FunctionTool(
-    name="password_analyzer",
-    description="Phân tích mật khẩu dựa trên phương pháp Bát Cục Linh Số",
-    function=password_analyzer
-) 
+password_analyzer_tool = FunctionTool(password_analyzer) 

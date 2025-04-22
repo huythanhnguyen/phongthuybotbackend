@@ -80,5 +80,5 @@ def cccd_analyzer(cccd_number: str, purpose: Optional[str] = None) -> Dict[str, 
     except Exception as e:
         raise ValueError(f"Error analyzing CCCD number: {str(e)}")
 
-# Create the tool
+# Tạo Function Tool
 cccd_analyzer_tool = FunctionTool(cccd_analyzer) 

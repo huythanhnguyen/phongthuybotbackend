@@ -112,8 +112,4 @@ def bank_account_analyzer(account_number: str) -> Dict[str, Any]:
     }
 
 # Tạo Function Tool
-bank_account_analyzer_tool = FunctionTool(
-    name="bank_account_analyzer",
-    description="Phân tích số tài khoản ngân hàng dựa trên phương pháp Bát Cục Linh Số",
-    function=bank_account_analyzer
-) 
+bank_account_analyzer_tool = FunctionTool(bank_account_analyzer) 
