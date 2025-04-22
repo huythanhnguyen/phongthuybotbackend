@@ -5,6 +5,11 @@ Phone Analyzer: Tool để phân tích số điện thoại theo phương pháp 
 import re
 from typing import Dict, Any, List, Optional
 from google.adk.core.tool import Tool
+import os
+from python_adk.constants.bat_tinh import BAT_TINH
+from python_adk.constants.combinations import COMBINATIONS
+from python_adk.constants.digit_meanings import DIGIT_MEANINGS
+from python_adk.constants.response_factors import RESPONSE_FACTORS
 
 class PhoneAnalyzer(Tool):
     """Tool phân tích số điện thoại theo phương pháp Bát Cục Linh Số"""
@@ -362,68 +367,156 @@ class PhoneAnalyzer(Tool):
         
         return advice
     
-    async def execute(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Thực thi phân tích số điện thoại theo phương pháp Bát Cục Linh Số"""
-        phone_number = params.get("phone_number")
-        purpose = params.get("purpose")
-        
-        if not phone_number:
-            return {
-                "success": False,
-                "message": "Thiếu số điện thoại để phân tích"
-            }
-        
-        # Chuẩn hóa số điện thoại
-        normalized_phone = self._normalize_phone_number(phone_number)
-        
-        # Nếu số không hợp lệ
-        if len(normalized_phone) < 9 or len(normalized_phone) > 11:
-            return {
-                "success": False,
-                "message": f"Số điện thoại không hợp lệ: {phone_number}"
-            }
-        
-        # Lấy các cặp số chồng lấp
-        pairs = self._get_overlapping_pairs(normalized_phone)
-        
-        # Phân tích từng cặp số
-        pairs_analysis = []
+    def _get_star_level(self, energy: int) -> str:
+        if energy >= 4:
+            return "VERY_HIGH"
+        elif energy == 3:
+            return "HIGH"
+        elif energy == 2:
+            return "MEDIUM"
+        return "LOW"
+
+    def _generate_pairs(self, digits: str) -> List[str]:
+        pairs: List[str] = []
+        i = 0
+        while i < len(digits) - 1:
+            if digits[i] in ("0", "5"):
+                i += 1
+                continue
+            if digits[i+1] not in ("0", "5"):
+                pairs.append(digits[i:i+2])
+                i += 1
+            else:
+                j = i + 1
+                group = digits[i]
+                while j < len(digits) and digits[j] in ("0", "5"):
+                    group += digits[j]
+                    j += 1
+                if j < len(digits):
+                    group += digits[j]
+                    j += 1
+                pairs.append(group)
+                i = j - 1
+        # xử lý nhóm cuối
+        if pairs:
+            last = pairs[-1]
+            if len(last) > 1 and last[0] not in ("0", "5") and all(c in ("0","5") for c in last[1:]):
+                trailing = last[1:]
+                pairs[-1] = last[0] + trailing
+        return pairs
+
+    def _map_to_star_sequence(self, normalized: str) -> List[Dict[str, Any]]:
+        pairs = self._generate_pairs(normalized)
+        zero_count = normalized.count("0")
+        five_count = normalized.count("5")
+        special_attr = ""
+        special_effect = ""
+        if zero_count:
+            special_attr = "zero"
+            special_effect = "Số 0 làm giảm năng lượng của các sao"
+        if five_count:
+            special_attr = f"{special_attr}_five" if special_attr else "five"
+            msg = "Số 5 tăng cường năng lượng của các sao"
+            special_effect = f"{special_effect}, {msg}" if special_effect else msg
+        sequence: List[Dict[str,Any]] = []
         for pair in pairs:
-            star_info = self._get_star_for_pair(pair)
-            pairs_analysis.append({
-                "pair": pair,
-                "star": star_info["name"],
-                "description": star_info["description"],
-                "energy": star_info["energy"],
-                "nature": star_info["nature"]
+            zeroes = pair.count("0")
+            fives = pair.count("5")
+            clean = "".join(d for d in pair if d not in ("0","5"))
+            star_key, star_obj = None, None
+            for k,v in BAT_TINH.items():
+                if clean in v.get("numbers",[]):
+                    star_key, star_obj = k, v
+                    break
+            base_energy = star_obj.get("energy", {}).get(clean, 1) if star_obj else 1
+            energy_level = max(1, base_energy + fives - zeroes)
+            level = self._get_star_level(energy_level)
+            response_factor = RESPONSE_FACTORS.get("STAR_RESPONSE_FACTORS", {}).get(star_key, 1)
+            weighted = energy_level
+            adjusted = weighted * response_factor
+            sequence.append({
+                "originalPair": pair,
+                "mappedPair": clean,
+                "star": star_key or "UNKNOWN",
+                "name": star_obj.get("name", "") if star_obj else "",
+                "nature": star_obj.get("nature", "") if star_obj else "",
+                "level": level,
+                "energyLevel": energy_level,
+                "baseEnergyLevel": base_energy,
+                "specialAttribute": special_attr,
+                "specialEffect": special_effect,
+                "detailedDescription": star_obj.get("detailedDescription", "") if star_obj else "",
+                "description": star_obj.get("description", "") if star_obj else "",
+                "isZeroVariant": zeroes > 0,
+                "zeroCount": zeroes,
+                "fiveCount": fives,
+                "weightedEnergy": weighted,
+                "responseFactor": response_factor,
+                "adjustedEnergy": adjusted
             })
-        
-        # Cấu trúc kết quả phân tích
-        analysis_result = {
-            "original_number": phone_number,
-            "normalized_number": normalized_phone,
-            "pairs": pairs,
-            "pairs_analysis": pairs_analysis
+        return sequence
+
+    async def execute(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        phone_number = params.get("phone_number")
+        if not phone_number:
+            return {"success": False, "message": "Thiếu số điện thoại để phân tích"}
+        normalized = self._normalize_phone_number(phone_number)
+        # kiểm tra độ dài
+        if len(normalized) < 9 or len(normalized) > 11:
+            return {"success": False, "message": f"Số điện thoại không hợp lệ: {phone_number}"}
+        star_sequence = self._map_to_star_sequence(normalized)
+        # tính năng lượng
+        total_energy = sum(x["energyLevel"] for x in star_sequence)
+        cat = sum(1 for x in star_sequence if x["nature"] == "Cát")
+        hung = sum(1 for x in star_sequence if x["nature"] == "Hung")
+        ratio = cat / (cat + hung) if (cat + hung) else 0
+        balance = "Cân bằng" if abs(cat - hung) < 2 else ("Dương thịnh" if cat > hung else "Âm thịnh")
+        energy_levels = {"total": total_energy, "cat": cat, "hung": hung, "ratio": ratio}
+        # tổ hợp sao liền kề
+        combos = []
+        for i in range(len(star_sequence) - 1):
+            f = star_sequence[i]; s = star_sequence[i+1]
+            key = f"{f['star']}_{s['star']}"
+            comb = COMBINATIONS.get("STAR_PAIRS", {}).get(key, {})
+            combos.append({
+                "firstStar": {"name": f['name'], "nature": f['nature'], "originalPair": f['originalPair'], "energyLevel": f['energyLevel']},
+                "secondStar": {"name": s['name'], "nature": s['nature'], "originalPair": s['originalPair'], "energyLevel": s['energyLevel']},
+                "key": key,
+                "description": comb.get("description", ""),
+                "detailedDescription": comb.get("detailedDescription", []),
+                "totalEnergy": f['energyLevel'] + s['energyLevel'],
+                "isPositive": f['nature'] == "Cát" and s['nature'] == "Cát",
+                "isNegative": f['nature'] == "Hung" and s['nature'] == "Hung",
+                "position": f"{i+1}-{i+2}",
+                "isLastPair": i == len(star_sequence) - 2
+            })
+        # vị trí đặc biệt
+        kp = {}
+        ln = len(normalized)
+        kp['lastDigit'] = {"value": normalized[-1], "meaning": DIGIT_MEANINGS.get("SINGLE_DIGIT_MEANINGS", {}).get(normalized[-1], ""), "position": "Vị trí cuối cùng"}
+        if ln >= 3:
+            d3 = normalized[-3]
+            kp['thirdFromEnd'] = {"value": d3, "meaning": DIGIT_MEANINGS.get("THIRD_FROM_END_MEANINGS", {}).get(d3, ""), "position": "Vị trí thứ 3 từ cuối"}
+        if ln >= 5:
+            d5 = normalized[-5]
+            kp['fifthFromEnd'] = {"value": d5, "meaning": DIGIT_MEANINGS.get("FIFTH_FROM_END_MEANINGS", {}).get(d5, ""), "position": "Vị trí thứ 5 từ cuối"}
+        # phân tích 3 số cuối
+        last3 = normalized[-3:]
+        p1, p2 = last3[:2], last3[1:]
+        info1 = next((x for x in star_sequence if x['originalPair'] == p1), {})
+        info2 = next((x for x in star_sequence if x['originalPair'] == p2), {})
+        ck = f"{info1.get('star')}_{info2.get('star')}"
+        cinfo = COMBINATIONS.get("STAR_PAIRS", {}).get(ck, {})
+        last3analysis = {
+            "lastThreeDigits": last3,
+            "firstPair": {"pair": p1, "starInfo": info1},
+            "secondPair": {"pair": p2, "starInfo": info2},
+            "specialCombination": None,
+            "starCombination": {"key": ck, "name": ck.replace("_"," + "), "description": cinfo.get("description",""), "detailedDescription": cinfo.get("detailedDescription",[])},
+            "hasSpecialMeaning": True
         }
-        
-        # Phân tích cân bằng năng lượng
-        energy_balance = self._analyze_energy_balance(analysis_result)
-        analysis_result["energy_balance"] = energy_balance
-        
-        # Phân tích độ phù hợp với mục đích
-        purpose_compatibility = self._analyze_purpose_compatibility(analysis_result, purpose)
-        analysis_result["purpose_compatibility"] = purpose_compatibility
-        
-        # Tạo lời khuyên tổng thể
-        overall_advice = self._get_overall_advice(analysis_result)
-        analysis_result["advice"] = overall_advice
-        
-        return {
-            "success": True,
-            "phoneNumber": phone_number,
-            "normalized": normalized_phone,
-            "analysis": analysis_result
-        }
+        analysis = {"result": {"starSequence": star_sequence, "energyLevel": energy_levels, "balance": balance, "starCombinations": combos, "keyCombinations": [], "dangerousCombinations": [], "keyPositions": kp, "last3DigitsAnalysis": last3analysis, "specialAttribute": ""}}
+        return {"success": True, "analysis": analysis}
 
 # Comment thêm vào để kiểm tra quyền edit của Cursor
 # Đây là đoạn comment thử nghiệm 
