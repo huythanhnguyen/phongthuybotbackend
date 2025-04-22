@@ -5,8 +5,10 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Cấu hình kết nối đến Python ADK
-const PYTHON_ADK_URL = process.env.PYTHON_ADK_URL || 'http://localhost:8000';
+const PROD_ADK_URL = 'https://phongthuybotadk.onrender.com';
+const DEV_ADK_URL = process.env.PYTHON_ADK_URL || 'http://localhost:8000';
 const API_KEY = process.env.ADK_API_KEY || 'dev_key';
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 /**
  * Service phân tích số điện thoại, CCCD theo phương pháp Bát Cục Linh Số
@@ -17,8 +19,11 @@ class BatCucLinhSoService {
    */
   constructor() {
     console.log('🔢 Khởi tạo Bát Cục Linh Số Service');
+    const baseURL = NODE_ENV === 'production' ? PROD_ADK_URL : DEV_ADK_URL;
+    console.log(`🔗 Kết nối đến Python ADK: ${baseURL}`);
+    
     this.apiClient = axios.create({
-      baseURL: `${PYTHON_ADK_URL}/api`,
+      baseURL: baseURL,
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': API_KEY
@@ -39,7 +44,7 @@ class BatCucLinhSoService {
       const normalizedPhone = phoneNumber.replace(/[^0-9+]/g, '');
       
       // Gọi API từ Python ADK
-      const response = await this.apiClient.post('/batcuclinh_so/phone', {
+      const response = await this.apiClient.post('/analyze/phone', {
         phone_number: normalizedPhone
       });
       
@@ -68,7 +73,7 @@ class BatCucLinhSoService {
       const normalizedCCCD = cccdNumber.replace(/[^0-9]/g, '');
       
       // Gọi API từ Python ADK
-      const response = await this.apiClient.post('/batcuclinh_so/cccd', {
+      const response = await this.apiClient.post('/analyze/cccd', {
         cccd_number: normalizedCCCD
       });
       
@@ -115,7 +120,7 @@ class BatCucLinhSoService {
       console.log(`🔐 Phân tích mật khẩu theo phong thủy`);
       
       // Gọi API từ Python ADK
-      const response = await this.apiClient.post('/batcuclinh_so/password', {
+      const response = await this.apiClient.post('/analyze/password', {
         password: password
       });
       
@@ -144,7 +149,7 @@ class BatCucLinhSoService {
       const normalizedAccount = accountNumber.replace(/[^0-9]/g, '');
       
       // Gọi API từ Python ADK
-      const response = await this.apiClient.post('/batcuclinh_so/bank_account', {
+      const response = await this.apiClient.post('/analyze/bank-account', {
         account_number: normalizedAccount
       });
       
@@ -171,7 +176,7 @@ class BatCucLinhSoService {
       console.log(`🏦 Gợi ý số tài khoản ngân hàng cho mục đích: ${purpose}`);
       
       // Gọi API từ Python ADK
-      const response = await this.apiClient.post('/batcuclinh_so/suggest_bank_account', {
+      const response = await this.apiClient.post('/suggest/bank-account', {
         purpose: purpose,
         preferred_digits: preferredDigits
       });

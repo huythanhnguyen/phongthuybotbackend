@@ -104,7 +104,7 @@ class PhoneAnalyzer:
             normalized = "0" + normalized[2:]
             
         return normalized
-
+    
     @staticmethod
     def _get_star_level(energy: int) -> str:
         if energy >= 4:
@@ -144,7 +144,7 @@ class PhoneAnalyzer:
                 trailing = last[1:]
                 pairs[-1] = last[0] + trailing
         return pairs
-
+    
     @staticmethod
     def _map_to_star_sequence(normalized: str) -> List[Dict[str, Any]]:
         pairs = PhoneAnalyzer._generate_pairs(normalized)
@@ -241,7 +241,7 @@ class PhoneAnalyzer:
             compatibility_level = "Không phù hợp"
         else:
             compatibility_level = "Rất không phù hợp"
-            
+        
         return {
             "purpose": purpose_info["name"],
             "favorable_stars": purpose_info["favorable_stars"],
