@@ -16,8 +16,8 @@ from google.adk.tools import FunctionTool
 
 # Import local components
 from python_adk.agents.batcuclinh_so_agent.agent import BatCucLinhSoAgent
-from python_adk.agents.batcuclinh_so_agent.tools.phone_analyzer import phone_analyzer_tool
-from python_adk.agents.batcuclinh_so_agent.tools.cccd_analyzer import cccd_analyzer_tool
+from python_adk.agents.batcuclinh_so_agent.tools.phone_analyzer import phone_analyzer_tool, phone_analyzer
+from python_adk.agents.batcuclinh_so_agent.tools.cccd_analyzer import cccd_analyzer_tool, cccd_analyzer
 
 # Load environment variables
 load_dotenv()
@@ -71,7 +71,7 @@ async def root():
 @app.post("/analyze/phone")
 async def analyze_phone(request: PhoneAnalysisRequest):
     try:
-        result = phone_analyzer_tool.function(
+        result = phone_analyzer(
             phone_number=request.phone_number,
             purpose=request.purpose
         )
@@ -84,7 +84,7 @@ async def analyze_phone(request: PhoneAnalysisRequest):
 @app.post("/analyze/cccd")
 async def analyze_cccd(request: CCCDAnalysisRequest):
     try:
-        result = cccd_analyzer_tool.function(
+        result = cccd_analyzer(
             cccd_number=request.cccd_number
         )
         return result

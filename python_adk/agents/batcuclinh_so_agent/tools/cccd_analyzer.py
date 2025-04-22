@@ -7,16 +7,15 @@ from typing import Dict, Any, Optional
 from python_adk.constants.bat_tinh import BAT_TINH
 from python_adk.constants.combinations import COMBINATIONS
 
-def analyze_cccd_number(cccd_number: str, purpose: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Analyze a CCCD number using Bát Cục Linh Số method
+def cccd_analyzer(cccd_number: str, purpose: Optional[str] = None) -> Dict[str, Any]:
+    """Phân tích số CCCD theo phương pháp Bát Cục Linh Số.
     
     Args:
-        cccd_number: The CCCD number to analyze
-        purpose: Optional purpose for the analysis
+        cccd_number: Số CCCD cần phân tích. Phải là 12 chữ số.
+        purpose: Mục đích sử dụng (tùy chọn).
         
     Returns:
-        Dict containing analysis results
+        Kết quả phân tích chi tiết.
     """
     try:
         # Validate CCCD number
@@ -82,4 +81,4 @@ def analyze_cccd_number(cccd_number: str, purpose: Optional[str] = None) -> Dict
         raise ValueError(f"Error analyzing CCCD number: {str(e)}")
 
 # Create the tool
-cccd_analyzer_tool = FunctionTool(analyze_cccd_number) 
+cccd_analyzer_tool = FunctionTool(cccd_analyzer) 

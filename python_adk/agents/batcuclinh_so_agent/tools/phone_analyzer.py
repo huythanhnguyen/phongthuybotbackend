@@ -252,5 +252,17 @@ class PhoneAnalyzer:
             "compatibility_level": compatibility_level
         }
 
+def phone_analyzer(phone_number: str, purpose: Optional[str] = None) -> Dict[str, Any]:
+    """Phân tích số điện thoại theo phương pháp Bát Cục Linh Số.
+    
+    Args:
+        phone_number: Số điện thoại cần phân tích. Phải là 10 chữ số.
+        purpose: Mục đích sử dụng số điện thoại (tùy chọn).
+        
+    Returns:
+        Kết quả phân tích chi tiết.
+    """
+    return PhoneAnalyzer.analyze_phone_number(phone_number, purpose)
+
 # Tạo Function Tool thay vì class tự định nghĩa
-phone_analyzer_tool = FunctionTool(PhoneAnalyzer.analyze_phone_number) 
+phone_analyzer_tool = FunctionTool(phone_analyzer) 
