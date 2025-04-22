@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- [cursor.md](mdc:phongthuybotbackend/cursor.md)
+- You can use markdown but dont have to

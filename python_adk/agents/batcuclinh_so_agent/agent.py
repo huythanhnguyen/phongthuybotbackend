@@ -35,7 +35,7 @@ class BatCucLinhSoAgent(LlmAgent):
                 # Try to extract phone number
                 phone_number = ''.join(filter(str.isdigit, message))
                 if len(phone_number) >= 10:
-                    result = await self.analyze_phone_number(phone_number)
+                    result = self.analyze_phone_number(phone_number)
                     return result.get("message", "Không thể phân tích số điện thoại")
 
             # Check if message contains CCCD number
@@ -43,7 +43,7 @@ class BatCucLinhSoAgent(LlmAgent):
                 # Try to extract CCCD number
                 cccd_number = ''.join(filter(str.isdigit, message))
                 if len(cccd_number) >= 12:
-                    result = await self.analyze_cccd_number(cccd_number)
+                    result = self.analyze_cccd_number(cccd_number)
                     return result.get("message", "Không thể phân tích số CCCD")
 
             # Default response if no analysis is possible
@@ -52,7 +52,7 @@ class BatCucLinhSoAgent(LlmAgent):
         except Exception as e:
             return f"Đã xảy ra lỗi khi xử lý tin nhắn: {str(e)}"
 
-    async def analyze_phone_number(self, phone_number: str, purpose: Optional[str] = None) -> Dict[str, Any]:
+    def analyze_phone_number(self, phone_number: str, purpose: Optional[str] = None) -> Dict[str, Any]:
         """
         Analyze a phone number using Bát Cục Linh Số method
         
@@ -69,11 +69,14 @@ class BatCucLinhSoAgent(LlmAgent):
             if not phone_analyzer:
                 raise ValueError("Phone analyzer tool not found")
 
-            # Execute the analysis
-            result = await phone_analyzer.execute({
-                "phone_number": phone_number,
-                "purpose": purpose
-            })
+            # Execute the analysis using func() directly - không cần await vì đây không phải là async function
+            params = {
+                "phone_number": phone_number
+            }
+            if purpose:
+                params["purpose"] = purpose
+                
+            result = phone_analyzer.func(**params)
 
             return {
                 "success": True,
@@ -87,7 +90,7 @@ class BatCucLinhSoAgent(LlmAgent):
                 "analysis": None
             }
 
-    async def analyze_cccd_number(self, cccd_number: str, purpose: Optional[str] = None) -> Dict[str, Any]:
+    def analyze_cccd_number(self, cccd_number: str, purpose: Optional[str] = None) -> Dict[str, Any]:
         """
         Analyze a CCCD number using Bát Cục Linh Số method
         
@@ -104,11 +107,14 @@ class BatCucLinhSoAgent(LlmAgent):
             if not cccd_analyzer:
                 raise ValueError("CCCD analyzer tool not found")
 
-            # Execute the analysis
-            result = await cccd_analyzer.execute({
-                "cccd_number": cccd_number,
-                "purpose": purpose
-            })
+            # Execute the analysis using func() directly - không cần await vì đây không phải là async function
+            params = {
+                "cccd_number": cccd_number
+            }
+            if purpose:
+                params["purpose"] = purpose
+                
+            result = cccd_analyzer.func(**params)
 
             return {
                 "success": True,
