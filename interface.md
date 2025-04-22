@@ -6,7 +6,7 @@ API của Phong Thủy Số v2.0 cung cấp các endpoints để phân tích s�
 
 **Base URL:**
 - Development: `http://localhost:5000` (Node.js Gateway)
-- ADK Service: `http://localhost:8000` (Python ADK)
+- ADK Service: `http://localhost:10000` (Python ADK)
 - Production: `https://phongthuybotbackend.onrender.com`
 
 ## Kiến trúc hệ thống
@@ -209,7 +209,7 @@ Lấy thông tin về API Bát Cục Linh Số.
     "cccdAnalysis": "POST /api/v2/bat-cuc-linh-so/cccd",
     "passwordAnalysis": "POST /api/v2/bat-cuc-linh-so/password",
     "bankAccountAnalysis": "POST /api/v2/bat-cuc-linh-so/bank-account",
-    "suggestBankAccount": "POST /api/v2/bat-cuc-linh-so/suggest-bank-account"
+    "bankAccountSuggestion": "POST /api/v2/bat-cuc-linh-so/suggest-bank-account"
   }
 }
 ```
@@ -430,7 +430,7 @@ Gợi ý số tài khoản ngân hàng phù hợp với mục đích sử dụng
 
 ```json
 {
-  "purpose": "business", // "business", "investment", "saving", "personal" 
+  "purpose": "business", // "business", "investment", "saving", "personal", "health"
   "preferredDigits": ["6", "8", "9"] // optional
 }
 ```
@@ -478,8 +478,9 @@ Lấy thông tin tổng quan về Python ADK Service.
 
 ```json
 {
-  "message": "Phong Thủy Số ADK Service is running",
-  "version": "0.1.0"
+  "name": "Phong Thủy Số API",
+  "version": "1.0.0",
+  "description": "API for analyzing phone numbers and CCCD numbers using Bát Cục Linh Số method"
 }
 ```
 
@@ -493,26 +494,22 @@ Kiểm tra trạng thái hoạt động của Python ADK Service.
 
 ```json
 {
-  "status": "ok",
-  "service": "Phong Thủy Số ADK Service"
+  "status": "healthy"
 }
 ```
 
-### Chat API
+### Phone Analysis API
 
-#### POST /chat
+#### POST /analyze/phone
 
-Gửi tin nhắn để xử lý bởi hệ thống agent.
+Phân tích số điện thoại theo phương pháp Bát Cục Linh Số.
 
 **Request Body:**
 
 ```json
 {
-  "message": "Phân tích số điện thoại 0987654321",
-  "session_id": "session123", // optional
-  "user_id": "user456", // optional
-  "metadata": {}, // optional
-  "stream": false // optional
+  "phone_number": "0987654321",
+  "purpose": "business" // optional
 }
 ```
 
@@ -520,98 +517,39 @@ Gửi tin nhắn để xử lý bởi hệ thống agent.
 
 ```json
 {
-  "success": true,
-  "response": "Phân tích số điện thoại 0987654321: ...",
-  "agent_type": "batcuclinh_so",
-  "session_id": "session123"
+  "phone_number": "0987654321",
+  "network_code": "098",
+  "subscriber_number": "7654321",
+  "analysis": [
+    {
+      "number": "09",
+      "tinh": "THIEN_Y",
+      "name": "Thiên Y",
+      "description": "May mắn, tài lộc, phú quý",
+      "energy": {...},
+      "position": "Rất tốt",
+      "nature": "Cát"
+    },
+    // ... các cặp số khác
+  ],
+  "combinations": [
+    {
+      "numbers": "09-87",
+      "combination": "THIEN_Y_SINH_KHI",
+      "description": "Quý nhân mang tài lộc",
+      "detailed_description": "Khi Sinh Khí kết hợp với Thiên Y, tạo thành tổ hợp mạnh về quý nhân và tài lộc..."
+    },
+    // ... các tổ hợp khác
+  ],
+  "purpose": "business"
 }
 ```
 
-#### POST /chat/stream
+### CCCD Analysis API
 
-Gửi tin nhắn và nhận phản hồi dạng stream.
+#### POST /analyze/cccd
 
-**Request Body:**
-
-```json
-{
-  "message": "Phân tích số điện thoại 0987654321",
-  "session_id": "session123", // optional
-  "user_id": "user456", // optional
-  "metadata": {} // optional
-}
-```
-
-**Response:**
-
-Server-Sent Events (SSE):
-
-```
-data: {"type":"chunk","content":"Phân tích tin nhắn"}
-data: {"type":"chunk","content":" \"0987654321\":"}
-...
-data: {"type":"complete"}
-```
-
-### Query API
-
-#### POST /query
-
-Gửi truy vấn trực tiếp đến một agent cụ thể.
-
-**Request Body:**
-
-```json
-{
-  "query": "Phân tích số điện thoại 0987654321",
-  "agent_type": "batcuclinh_so",
-  "session_id": "session123", // optional
-  "user_id": "user456", // optional
-  "metadata": {} // optional
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "response": "Phân tích từ agent batcuclinh_so: Phân tích số điện thoại 0987654321: ...",
-  "agent_type": "batcuclinh_so",
-  "session_id": "session123"
-}
-```
-
-### BatCucLinhSo API
-
-#### POST /api/batcuclinh_so/phone
-
-Phân tích số điện thoại theo Bát Cục Linh Số.
-
-**Request Body:**
-
-```json
-{
-  "phone_number": "0987654321"
-}
-```
-
-**Response:**
-
-```json
-{
-  "success": true,
-  "phoneNumber": "0987654321",
-  "normalized": "0987654321",
-  "analysis": {
-    // Chi tiết phân tích (xem phần Node.js API phía trên)
-  }
-}
-```
-
-#### POST /api/batcuclinh_so/cccd
-
-Phân tích CCCD/CMND theo Bát Cục Linh Số.
+Phân tích số CCCD theo phương pháp Bát Cục Linh Số.
 
 **Request Body:**
 
@@ -625,14 +563,34 @@ Phân tích CCCD/CMND theo Bát Cục Linh Số.
 
 ```json
 {
-  "success": true,
-  "cccdNumber": "012345678901",
-  "totalValue": 3,
-  "element": "Mộc",
-  "info": {
-    // Thông tin CCCD
+  "cccd_number": "012345678901",
+  "birth_date": {
+    "year": 2001,
+    "month": 2,
+    "day": 3
   },
-  "analysis": "Phân tích chi tiết..."
+  "last_four": "8901",
+  "analysis": [
+    {
+      "number": "01",
+      "tinh": "SINH_KHI",
+      "name": "Sinh Khí",
+      "description": "Quý nhân, may mắn, thuận lợi",
+      "energy": {...},
+      "position": "Rất tốt",
+      "nature": "Cát"
+    },
+    // ... các cặp số khác
+  ],
+  "combinations": [
+    {
+      "numbers": "01-23",
+      "combination": "SINH_KHI_DIEN_NIEN",
+      "description": "Quý nhân giúp sự nghiệp",
+      "detailed_description": "Khi Sinh Khí kết hợp với Diên Niên, tạo thành tổ hợp mạnh về quý nhân và sự nghiệp..."
+    },
+    // ... các tổ hợp khác
+  ]
 }
 ```
 
@@ -715,21 +673,21 @@ Server được cấu hình với:
 ```
 phongthuybotbackend/
 ├── api/                  # API routes và controllers
+│   ├── middleware/       # Middleware
 │   └── v2/               # API version 2
-│       ├── controllers/  # Logic xử lý request
-│       ├── middleware/   # Middleware
 │       ├── routes/       # Định nghĩa routes
+│       │   ├── root-agent.js     # Routes cho Root Agent
+│       │   └── bat-cuc-linh-so.js # Routes cho Bát Cục Linh Số
 │       └── services/     # Business logic
 ├── constants/            # Các hằng số
 ├── config/               # Cấu hình
 ├── python_adk/           # Python ADK integration
-│   ├── a2a/              # Agent-to-agent communication
 │   ├── agents/           # Agent implementations
 │   │   ├── root_agent/   # Root Agent xử lý điều phối
 │   │   └── batcuclinh_so_agent/ # Agent phân tích Bát Cục Linh Số
 │   │       ├── tools/    # Công cụ phân tích (PhoneAnalyzer, CCCDAnalyzer)
 │   │       └── prompts/  # Prompts và hướng dẫn cho agent
-│   ├── mcp/              # Multi-component protocol
+│   ├── constants/        # Các hằng số Python
 │   └── main.py           # FastAPI entry point
 ├── services/             # Shared services
 ├── .env.example          # Template cho biến môi trường
