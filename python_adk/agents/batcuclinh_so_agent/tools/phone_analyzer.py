@@ -423,4 +423,7 @@ class PhoneAnalyzer(Tool):
             "phoneNumber": phone_number,
             "normalized": normalized_phone,
             "analysis": analysis_result
-        } 
+        }
+
+# Comment thêm vào để kiểm tra quyền edit của Cursor
+# Đây là đoạn comment thử nghiệm 

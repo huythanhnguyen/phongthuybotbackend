@@ -12,6 +12,8 @@ import uvicorn
 from dotenv import load_dotenv
 import logging
 from pydantic import BaseModel
+from python_adk.agents.batcuclinh_so_agent.tools.phone_analyzer import PhoneAnalyzer
+from python_adk.agents.batcuclinh_so_agent.agent import BatCucLinhSoAgent
 
 # Tải biến môi trường
 load_dotenv()
@@ -43,6 +45,11 @@ class PhoneRequest(BaseModel):
 
 class CCCDRequest(BaseModel):
     cccd_number: str
+
+# Thêm Pydantic model cho raw analysis và explanation
+class PhoneAnalysisRequest(BaseModel):
+    phone_number: str
+    purpose: Optional[str] = None
 
 # Khởi tạo FastAPI app
 app = FastAPI(
@@ -300,3 +307,38 @@ if __name__ == "__main__":
 else:
     # Khi được import bởi uvicorn, sử dụng app object
     pass 
+
+# Khởi tạo công cụ và agent cho luận giải
+phone_analyzer_tool = PhoneAnalyzer()
+bat_agent = BatCucLinhSoAgent()
+
+# Endpoint trả về kết quả phân tích thô
+@app.post("/api/batcuclinh_so/phone/analysis")
+async def phone_analysis_result(request: PhoneAnalysisRequest):
+    """Trả về analysis_results từ PhoneAnalyzer"""
+    try:
+        logger.info(f"Received raw phone analysis request: {request.phone_number}")
+        result = await phone_analyzer_tool.execute({
+            "phone_number": request.phone_number,
+            "purpose": request.purpose
+        })
+        return result
+    except Exception as e:
+        logger.error(f"Error in raw phone analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Endpoint trả về luận giải qua LLM
+@app.post("/api/batcuclinh_so/phone/explanation")
+async def phone_explanation(request: PhoneAnalysisRequest):
+    """Trả về văn bản luận giải từ agent LLM"""
+    try:
+        logger.info(f"Received phone explanation request: {request.phone_number}")
+        # Gửi yêu cầu đến agent để lấy luận giải
+        agent_result = await bat_agent.process_request(request.phone_number)
+        return {
+            "success": agent_result.get("success"),
+            "explanation": agent_result.get("response")
+        }
+    except Exception as e:
+        logger.error(f"Error in phone explanation: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 

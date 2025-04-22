@@ -302,34 +302,37 @@ Bát Cục Linh Số là phương pháp phân tích năng lượng của các co
 
 **Quy tắc phân tích chính:**
 
-1. **Tách thành cặp số**: Số điện thoại/CCCD/STK được tách thành các cặp số liền kề
-   - Ví dụ: 0123456789 → 01, 12, 23, 34, 45, 56, 67, 78, 89
+1.0 **Chuẩn hóa và Lựa chọn các số ngẫu nhiên**: loại bỏ các khoảng trắng hoặc kí tự đặc biệt, loại bỏ các số format như số 0 ở đâu của số điện thoại ( hoặc số nhà mạng nếu có yêu cầu), loại bỏ các số vùng miền giới tính trong căn cước công dân...
+1.1 **Tách thành cặp số**: Số điện thoại/CCCD/STK được tách thành các cặp số liền kề
+   - Ví dụ: 0123456789 →  12, 23, 34, 45, 56, 67, 78, 89
 
 2. **Xác định thuộc tính sao**: Mỗi cặp số tương ứng với một sao (cát hoặc hung)
 
 3. **Đánh giá mức năng lượng**: Mỗi cặp số có mức năng lượng từ 1-4 (1: yếu, 4: mạnh)
 
 4. **Phân tích tổ hợp sao**: 
-   - Sao liền kề tạo thành tổ hợp có ý nghĩa riêng
-   - Tổ hợp Cát-Cát: Rất tốt
-   - Tổ hợp Cát-Hung: Trung tính hoặc giảm hiệu quả
-   - Tổ hợp Hung-Hung: Rất xấu
+   - tra tromg constant/batTinh.js
+   - tra tổ hợp trong combination.js
 
 5. **Xử lý số 0 và 5**: 
-   - Số 0: Thường làm biến chất sao (hóa hung)
-   - Số 5: Thường bị loại bỏ khỏi chuỗi phân tích
+   - Số 0: Thường làm biến chất sao (hóa hung)- tra trong batTinh.js
+   - Số 5: Tăng cường năng lượng của sao ( cộng thêm 1 nếu có 1 số)
 
-6. **Đánh giá tổng thể**:
-   - Tính toán tỷ lệ Cát/Hung
-   - Đánh giá mức năng lượng tổng hợp
-   - Xác định các tổ hợp đặc biệt có ảnh hưởng mạnh
+6. **Đánh giá**:
+   - đánh giá dựa vào từng case cụ thể theo tool
+ 
 
 **Ứng dụng theo loại phân tích:**
 
 1. **Phân tích Số Điện Thoại**:
-   - Đánh giá theo cặp số và mức độ tương thích với mục đích sử dụng
-   - Xác định phù hợp với ngành nghề, công việc, hoặc tài lộc
-   - Đề xuất giải pháp cải thiện (nếu cần)
+   1.1. loại bỏ các khoảng trắng hoặc kí tự đặc biệt, loại bỏ các số format như số 0 ở đâu của số điện thoại ( hoặc số nhà mạng nếu có yêu cầu)
+   - Tách thành các cặp sao ( bộ 2 số hoặc các bộ số dài hơn nếu có số 0,5)
+   - Phân tích các vị trí trọng yếu: 3 số cuối hoặc sao cuối ( nếu sao cuối có bao gồm số 0,5)
+   - Các vị trí quan trọng 1,3,5 từ bên phải, đọc ý nghĩa theo meaning 
+   - Phân tích các biến hóa dựa vào các cặp sao liền kề nhau ( ý nghĩa tại combination.js )
+   - tạo ra 1 endpoint để lấy thông tin của phân tích này, hãy tham khảo ./backup/services/analysisServices.js để đảm bảo có thể lấy hết các thông tin này ra phân tích.
+   1.2 Đưa vào LLM để tổng hợp và phân tích, hãy đảm bảo convert toàn bộ các thông tin và cách phân tích từ .backup/service/geminiService.js để vào trong python
+
 
 2. **Phân tích CCCD**:
    - Tập trung vào 6 số cuối (phần số ngẫu nhiên)
