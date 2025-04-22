@@ -1,10 +1,9 @@
 """
-Root Agent Package - Điều phối các yêu cầu đến các agent chuyên biệt
+Root Agent Package
+
+Root Agent là agent chính, điều phối các yêu cầu từ người dùng đến các agent chuyên biệt.
 """
 
-from .agent import RootAgent, AgentType
+from python_adk.agents.root_agent.agent import RootAgent
 
-__all__ = [
-    'RootAgent',
-    'AgentType'
-] 
+__all__ = ['RootAgent'] 

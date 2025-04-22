@@ -54,9 +54,10 @@ class ConversationManager(Tool):
                         "type": "boolean",
                         "description": "Trạng thái thành công"
                     },
-                    "data": {
-                        "type": "object",
-                        "description": "Dữ liệu kết quả"
+                    "history": {
+                        "type": "array",
+                        "items": {"type": "object"},
+                        "description": "Lịch sử trò chuyện"
                     },
                     "error": {
                         "type": "string",
@@ -66,10 +67,10 @@ class ConversationManager(Tool):
             }
         )
         
-        # Lưu trữ lịch sử trò chuyện
-        self.conversations: Dict[str, List[Dict[str, Any]]] = {}
+        # Memory lưu trữ lịch sử trò chuyện theo session
+        self.conversation_memory = {}
     
-    def add_message(self, session_id: str, message: Dict[str, Any]) -> Dict[str, Any]:
+    async def add_message(self, session_id: str, message: Dict[str, Any]) -> Dict[str, Any]:
         """Thêm tin nhắn vào lịch sử
         
         Args:
@@ -77,25 +78,25 @@ class ConversationManager(Tool):
             message: Tin nhắn cần thêm
             
         Returns:
-            Dict[str, Any]: Kết quả thao tác
+            Dict[str, Any]: Kết quả thêm tin nhắn
         """
-        if session_id not in self.conversations:
-            self.conversations[session_id] = []
+        # Khởi tạo lịch sử cho session nếu chưa có
+        if session_id not in self.conversation_memory:
+            self.conversation_memory[session_id] = []
         
         # Thêm timestamp nếu chưa có
         if "timestamp" not in message:
             message["timestamp"] = time.time()
         
-        self.conversations[session_id].append(message)
+        # Thêm tin nhắn vào lịch sử
+        self.conversation_memory[session_id].append(message)
         
         return {
             "success": True,
-            "data": {
-                "message_count": len(self.conversations[session_id])
-            }
+            "history": self.conversation_memory[session_id]
         }
     
-    def get_history(self, session_id: str, limit: Optional[int] = None) -> Dict[str, Any]:
+    async def get_history(self, session_id: str, limit: Optional[int] = None) -> Dict[str, Any]:
         """Lấy lịch sử trò chuyện
         
         Args:
@@ -103,62 +104,56 @@ class ConversationManager(Tool):
             limit: Số lượng tin nhắn tối đa trả về
             
         Returns:
-            Dict[str, Any]: Kết quả thao tác
+            Dict[str, Any]: Lịch sử trò chuyện
         """
-        if session_id not in self.conversations:
+        # Kiểm tra xem session có tồn tại không
+        if session_id not in self.conversation_memory:
             return {
-                "success": False,
-                "error": f"Không tìm thấy phiên trò chuyện với ID {session_id}"
+                "success": True,
+                "history": []
             }
         
-        history = self.conversations[session_id]
+        # Lấy lịch sử
+        history = self.conversation_memory[session_id]
         
-        if limit is not None and limit > 0:
+        # Giới hạn số lượng tin nhắn nếu có yêu cầu
+        if limit and limit > 0:
             history = history[-limit:]
         
         return {
             "success": True,
-            "data": {
-                "history": history,
-                "message_count": len(history)
-            }
+            "history": history
         }
     
-    def clear_history(self, session_id: str) -> Dict[str, Any]:
+    async def clear_history(self, session_id: str) -> Dict[str, Any]:
         """Xóa lịch sử trò chuyện
         
         Args:
             session_id: ID của phiên trò chuyện
             
         Returns:
-            Dict[str, Any]: Kết quả thao tác
+            Dict[str, Any]: Kết quả xóa lịch sử
         """
-        if session_id not in self.conversations:
-            return {
-                "success": False,
-                "error": f"Không tìm thấy phiên trò chuyện với ID {session_id}"
-            }
-        
-        self.conversations[session_id] = []
+        # Xóa lịch sử
+        if session_id in self.conversation_memory:
+            self.conversation_memory[session_id] = []
         
         return {
             "success": True,
-            "data": {
-                "message_count": 0
-            }
+            "history": []
         }
     
     async def execute(self, **kwargs) -> Dict[str, Any]:
         """Thực thi tool với tham số từ ADK
         
         Args:
-            **kwargs: Tham số, bao gồm action, session_id và các tham số khác
+            **kwargs: Tham số
             
         Returns:
             Dict[str, Any]: Kết quả của hành động
         """
-        action = kwargs.get("action", "")
-        session_id = kwargs.get("session_id", "")
+        action = kwargs.get("action")
+        session_id = kwargs.get("session_id")
         
         if not action:
             return {
@@ -172,21 +167,22 @@ class ConversationManager(Tool):
                 "error": "Thiếu tham số session_id"
             }
         
+        # Thực hiện hành động tương ứng
         if action == "add_message":
-            message = kwargs.get("message", {})
+            message = kwargs.get("message")
             if not message:
                 return {
                     "success": False,
-                    "error": "Thiếu tham số message"
+                    "error": "Thiếu tham số message cho hành động add_message"
                 }
-            return self.add_message(session_id, message)
+            return await self.add_message(session_id, message)
         
         elif action == "get_history":
             limit = kwargs.get("limit")
-            return self.get_history(session_id, limit)
+            return await self.get_history(session_id, limit)
         
         elif action == "clear_history":
-            return self.clear_history(session_id)
+            return await self.clear_history(session_id)
         
         else:
             return {

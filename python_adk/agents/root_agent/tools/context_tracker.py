@@ -1,30 +1,32 @@
 """
-Context Tracker Tool - Công cụ theo dõi và duy trì context của cuộc trò chuyện
+Context Tracker Tool - Công cụ theo dõi ngữ cảnh hội thoại
 
-Tool này lưu trữ và quản lý context của cuộc trò chuyện để cung cấp 
-thông tin liên tục giữa các lượt tương tác.
+Tool này quản lý và theo dõi ngữ cảnh (context) của cuộc trò chuyện,
+lưu trữ và truy xuất thông tin quan trọng giữa các lượt tương tác.
 """
 
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+import time
+import json
+import logging
 
 # Google ADK imports
 from google.adk.core.tool import Tool
 
 
 class ContextTracker(Tool):
-    """Tool theo dõi và duy trì context của cuộc trò chuyện"""
+    """Tool theo dõi ngữ cảnh hội thoại"""
     
     def __init__(self):
         """Khởi tạo Context Tracker Tool"""
         super().__init__(
             name="context_tracker",
-            description="Theo dõi và duy trì context của cuộc trò chuyện",
+            description="Theo dõi ngữ cảnh (context) của cuộc trò chuyện",
             parameters=[
                 {
                     "name": "action",
                     "type": "string",
-                    "description": "Hành động cần thực hiện: get_context, update_context, clear_context",
+                    "description": "Hành động cần thực hiện: update, get, clear",
                     "required": True
                 },
                 {
@@ -36,13 +38,13 @@ class ContextTracker(Tool):
                 {
                     "name": "context_data",
                     "type": "object",
-                    "description": "Dữ liệu context cần cập nhật (chỉ cần khi action=update_context)",
+                    "description": "Dữ liệu context cần cập nhật (chỉ cần khi action=update)",
                     "required": False
                 },
                 {
                     "name": "key",
                     "type": "string",
-                    "description": "Khóa của giá trị cần lấy (chỉ cần khi muốn lấy một giá trị cụ thể)",
+                    "description": "Khóa cụ thể trong context cần lấy (chỉ cần khi action=get)",
                     "required": False
                 }
             ],
@@ -54,9 +56,9 @@ class ContextTracker(Tool):
                         "type": "boolean",
                         "description": "Trạng thái thành công"
                     },
-                    "data": {
+                    "context": {
                         "type": "object",
-                        "description": "Dữ liệu kết quả"
+                        "description": "Dữ liệu context"
                     },
                     "error": {
                         "type": "string",
@@ -66,107 +68,98 @@ class ContextTracker(Tool):
             }
         )
         
-        # Lưu trữ context của các phiên trò chuyện
-        self.contexts: Dict[str, Dict[str, Any]] = {}
+        # Lưu trữ context theo session
+        self.contexts = {}
+        self.logger = logging.getLogger("ContextTracker")
     
-    def get_context(self, session_id: str, key: Optional[str] = None) -> Dict[str, Any]:
-        """Lấy context của phiên trò chuyện
-        
-        Args:
-            session_id: ID của phiên trò chuyện
-            key: Khóa của giá trị cần lấy (nếu None, trả về toàn bộ context)
-            
-        Returns:
-            Dict[str, Any]: Kết quả thao tác
-        """
-        if session_id not in self.contexts:
-            return {
-                "success": False,
-                "error": f"Không tìm thấy context cho phiên với ID {session_id}"
-            }
-        
-        if key is not None:
-            if key in self.contexts[session_id]:
-                return {
-                    "success": True,
-                    "data": {
-                        key: self.contexts[session_id][key]
-                    }
-                }
-            else:
-                return {
-                    "success": False,
-                    "error": f"Không tìm thấy khóa {key} trong context"
-                }
-        
-        return {
-            "success": True,
-            "data": self.contexts[session_id]
-        }
-    
-    def update_context(self, session_id: str, context_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Cập nhật context của phiên trò chuyện
+    async def update_context(self, session_id: str, context_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Cập nhật context cho một phiên
         
         Args:
             session_id: ID của phiên trò chuyện
             context_data: Dữ liệu context cần cập nhật
             
         Returns:
-            Dict[str, Any]: Kết quả thao tác
+            Dict[str, Any]: Kết quả cập nhật
         """
+        # Khởi tạo context cho session nếu chưa có
         if session_id not in self.contexts:
-            self.contexts[session_id] = {}
+            self.contexts[session_id] = {
+                "last_updated": time.time()
+            }
         
         # Cập nhật context với dữ liệu mới
         self.contexts[session_id].update(context_data)
+        self.contexts[session_id]["last_updated"] = time.time()
         
-        # Cập nhật thời gian cập nhật cuối cùng
-        self.contexts[session_id]["last_updated"] = datetime.now().isoformat()
+        self.logger.debug(f"Cập nhật context cho session {session_id}")
         
         return {
             "success": True,
-            "data": {
-                "updated_keys": list(context_data.keys())
-            }
+            "context": self.contexts[session_id]
         }
     
-    def clear_context(self, session_id: str) -> Dict[str, Any]:
-        """Xóa context của phiên trò chuyện
+    async def get_context(self, session_id: str, key: Optional[str] = None) -> Dict[str, Any]:
+        """Lấy context của một phiên
+        
+        Args:
+            session_id: ID của phiên trò chuyện
+            key: Khóa cụ thể trong context cần lấy (optional)
+            
+        Returns:
+            Dict[str, Any]: Context
+        """
+        # Kiểm tra xem session có tồn tại không
+        if session_id not in self.contexts:
+            return {
+                "success": True,
+                "context": {}
+            }
+        
+        # Lấy toàn bộ context hoặc giá trị cụ thể
+        if key:
+            value = self.contexts[session_id].get(key)
+            return {
+                "success": True,
+                "context": {key: value}
+            }
+        else:
+            return {
+                "success": True,
+                "context": self.contexts[session_id]
+            }
+    
+    async def clear_context(self, session_id: str) -> Dict[str, Any]:
+        """Xóa context của một phiên
         
         Args:
             session_id: ID của phiên trò chuyện
             
         Returns:
-            Dict[str, Any]: Kết quả thao tác
+            Dict[str, Any]: Kết quả xóa
         """
-        if session_id not in self.contexts:
-            return {
-                "success": False,
-                "error": f"Không tìm thấy context cho phiên với ID {session_id}"
+        # Xóa context
+        if session_id in self.contexts:
+            self.contexts[session_id] = {
+                "last_updated": time.time()
             }
-        
-        self.contexts[session_id] = {
-            "last_updated": datetime.now().isoformat()
-        }
         
         return {
             "success": True,
-            "data": {
-                "message": f"Đã xóa context cho phiên {session_id}"
-            }
+            "context": {}
         }
     
     async def execute(self, **kwargs) -> Dict[str, Any]:
         """Thực thi tool với tham số từ ADK
         
         Args:
-            **kwargs: Tham số, bao gồm action, session_id và các tham số khác
+            **kwargs: Tham số
             
         Returns:
             Dict[str, Any]: Kết quả của hành động
         """
-        action = kwargs.get("action", "")
-        session_id = kwargs.get("session_id", "")
+        action = kwargs.get("action")
+        session_id = kwargs.get("session_id")
         
         if not action:
             return {
@@ -180,21 +173,22 @@ class ContextTracker(Tool):
                 "error": "Thiếu tham số session_id"
             }
         
-        if action == "get_context":
-            key = kwargs.get("key")
-            return self.get_context(session_id, key)
-        
-        elif action == "update_context":
-            context_data = kwargs.get("context_data", {})
+        # Thực hiện hành động tương ứng
+        if action == "update":
+            context_data = kwargs.get("context_data")
             if not context_data:
                 return {
                     "success": False,
-                    "error": "Thiếu tham số context_data"
+                    "error": "Thiếu tham số context_data cho hành động update"
                 }
-            return self.update_context(session_id, context_data)
+            return await self.update_context(session_id, context_data)
         
-        elif action == "clear_context":
-            return self.clear_context(session_id)
+        elif action == "get":
+            key = kwargs.get("key")
+            return await self.get_context(session_id, key)
+        
+        elif action == "clear":
+            return await self.clear_context(session_id)
         
         else:
             return {

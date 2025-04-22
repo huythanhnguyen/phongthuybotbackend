@@ -58,106 +58,96 @@ class IntentClassifier(Tool):
             }
         )
         
-        # Các pattern và từ khóa để phân loại
-        self.patterns = {
-            AgentType.BAT_CUC_LINH_SO: [
-                r'số điện thoại',
-                r'sđt',
-                r'số đt',
-                r'số cccd',
-                r'căn cước',
-                r'cmnd',
-                r'cccd',
-                r'tài khoản ngân hàng',
-                r'số tài khoản',
-                r'stk',
-                r'mật khẩu',
-                r'password',
-                r'bát tinh',
-                r'phong thủy số',
-                r'bát cục linh số',
-                r'phân tích số',
-                r'\d{9,12}', # Mẫu số CCCD/CMND (9-12 chữ số)
-                r'\d{10,11}' # Mẫu số điện thoại (10-11 chữ số)
-            ],
-            AgentType.PAYMENT: [
-                r'thanh toán',
-                r'payment',
-                r'nâng cấp',
-                r'upgrade',
-                r'gói dịch vụ',
-                r'plan',
-                r'subscription',
-                r'premium',
-                r'mua',
-                r'buy',
-                r'giá',
-                r'price',
-                r'quota',
-                r'hết lượt'
-            ],
-            AgentType.USER: [
-                r'tài khoản',
-                r'account',
-                r'đăng ký',
-                r'đăng nhập',
-                r'login',
-                r'signup',
-                r'register',
-                r'api key',
-                r'api token',
-                r'profile',
-                r'hồ sơ',
-                r'thông tin cá nhân'
-            ]
-        }
+        # Từ khóa cho BatCucLinhSoAgent
+        self.batcuclinh_so_keywords = [
+            "số điện thoại", "điện thoại", "sđt", "sim", "số sim", 
+            "cccd", "căn cước", "căn cước công dân", "cmnd", "chứng minh", 
+            "ngân hàng", "số tài khoản", "stk", "tài khoản", "mật khẩu", 
+            "password", "bát cực", "phong thủy", "linh số", "bát trạch", 
+            "phân tích số", "đánh giá số", "phong thủy số"
+        ]
+        
+        # Từ khóa cho PaymentAgent
+        self.payment_keywords = [
+            "thanh toán", "nạp tiền", "gói dịch vụ", "mua gói", "subscription", 
+            "gia hạn", "upgrade", "nâng cấp", "hóa đơn", "giá tiền", "chi phí", 
+            "premium", "vip", "momo", "vnpay", "zalopay", "payos", "banking", 
+            "ngân hàng", "thẻ visa", "thẻ mastercard", "thẻ atm", "thẻ tín dụng"
+        ]
+        
+        # Từ khóa cho UserAgent
+        self.user_keywords = [
+            "tài khoản", "đăng ký", "đăng nhập", "login", "signup", "register", 
+            "profile", "hồ sơ", "thông tin cá nhân", "mật khẩu", "đổi mật khẩu", 
+            "quên mật khẩu", "khôi phục", "xóa tài khoản", "cập nhật", "update", 
+            "xác thực", "api key", "token", "logout", "đăng xuất"
+        ]
     
     async def analyze_intent(self, message: str) -> Dict[str, Any]:
-        """Phân tích ý định dựa trên nội dung tin nhắn
+        """Phân tích ý định của người dùng từ tin nhắn
         
         Args:
             message: Nội dung tin nhắn cần phân tích
             
         Returns:
-            Dict[str, Any]: Kết quả phân tích gồm agent_type, confidence, keywords
+            Dict[str, Any]: Kết quả phân tích ý định
         """
-        # Chuyển tin nhắn sang chữ thường để dễ phân tích
-        message_lower = message.lower()
+        message = message.lower()
         
-        # Đếm số từ khóa match với mỗi loại agent
-        matches = {agent_type: 0 for agent_type in AgentType}
-        keywords = {agent_type: [] for agent_type in AgentType}
+        # Phát hiện từ khóa
+        batcuc_score, batcuc_keywords = self._detect_keywords(message, self.batcuclinh_so_keywords)
+        payment_score, payment_keywords = self._detect_keywords(message, self.payment_keywords)
+        user_score, user_keywords = self._detect_keywords(message, self.user_keywords)
         
-        # Kiểm tra các pattern
-        for agent_type, patterns in self.patterns.items():
-            for pattern in patterns:
-                if re.search(pattern, message_lower):
-                    matches[agent_type] += 1
-                    keywords[agent_type].append(pattern)
+        # Tìm loại agent có điểm cao nhất
+        max_score = max(batcuc_score, payment_score, user_score)
         
-        # Xác định agent có số lượng matches cao nhất
-        max_matches = 0
-        best_agent = AgentType.UNKNOWN
+        # Xác định agent phù hợp
+        if max_score == 0:
+            agent_type = AgentType.UNKNOWN
+            keywords = []
+            confidence = 0.0
+        elif max_score == batcuc_score:
+            agent_type = AgentType.BAT_CUC_LINH_SO
+            keywords = batcuc_keywords
+            confidence = batcuc_score / len(message.split())
+        elif max_score == payment_score:
+            agent_type = AgentType.PAYMENT
+            keywords = payment_keywords
+            confidence = payment_score / len(message.split())
+        else:
+            agent_type = AgentType.USER
+            keywords = user_keywords
+            confidence = user_score / len(message.split())
         
-        for agent_type, count in matches.items():
-            if count > max_matches:
-                max_matches = count
-                best_agent = agent_type
-        
-        # Tính độ tin cậy
-        total_matches = sum(matches.values())
-        confidence = max_matches / total_matches if total_matches > 0 else 0
-        
-        # Fallback về BatCucLinhSo nếu không xác định được
-        if best_agent == AgentType.UNKNOWN or confidence < 0.3:
-            best_agent = AgentType.BAT_CUC_LINH_SO
-            confidence = 0.5
+        # Chuẩn hóa độ tin cậy (0-1)
+        confidence = min(1.0, confidence * 3)  # Nhân 3 để tăng độ tin cậy
         
         return {
-            "agent_type": best_agent,
+            "agent_type": agent_type,
             "confidence": confidence,
-            "keywords": keywords[best_agent]
+            "keywords": keywords
         }
+    
+    def _detect_keywords(self, message: str, keywords: List[str]) -> tuple:
+        """Phát hiện từ khóa trong tin nhắn
+        
+        Args:
+            message: Tin nhắn cần phân tích
+            keywords: Danh sách từ khóa cần phát hiện
+            
+        Returns:
+            tuple: (điểm số, danh sách từ khóa phát hiện được)
+        """
+        score = 0
+        detected_keywords = []
+        
+        for keyword in keywords:
+            if keyword in message:
+                score += 1
+                detected_keywords.append(keyword)
+        
+        return score, detected_keywords
     
     async def execute(self, **kwargs) -> Dict[str, Any]:
         """Thực thi tool với tham số từ ADK

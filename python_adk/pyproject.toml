@@ -1,0 +1,31 @@
+[project]
+name = "phongthuybot"
+version = "0.1.0"
+description = "Hệ thống phân tích phong thủy số học sử dụng kiến trúc Multi-Agent"
+authors = [
+    {name = "Phong Thuy Bot Team"}
+]
+license = "Apache License 2.0"
+readme = "README.md"
+requires-python = ">=3.13"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+pydantic = "^2.10.0"
+python-dotenv = "^1.0.0"
+google-genai = "^1.9.0"
+google-adk = ">=0.0.2"
+fastapi = "^0.110.0"
+uvicorn = "^0.30.0"
+typing-extensions = "^4.10.0"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+google-adk = { version = ">=0.0.2", extras = ["eval"] }
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api" 

@@ -13,7 +13,7 @@ from enum import Enum
 from google.adk.core.tool import Tool
 
 # Local imports
-from .intent_classifier import AgentType
+from python_adk.agents.root_agent.tools.intent_classifier import AgentType
 
 
 class AgentRouter(Tool):
@@ -80,7 +80,7 @@ class AgentRouter(Tool):
         # Các agent đã đăng ký (sẽ được cập nhật bởi Root Agent)
         self.registered_agents = {}
     
-    def register_agent(self, agent_type: str, agent: Any) -> None:
+    def register_agent(self, agent_type: AgentType, agent: Any) -> None:
         """Đăng ký agent với router
         
         Args:
@@ -90,80 +90,79 @@ class AgentRouter(Tool):
         self.registered_agents[agent_type] = agent
         self.logger.info(f"Đã đăng ký {agent_type} Agent với Router")
     
-    async def route_request(self, agent_type: str, request: str, session_id: str, 
-                           context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def route_to_agent(self, agent_type: AgentType, request: str, session_id: str, 
+                          context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Chuyển hướng yêu cầu đến agent phù hợp
         
         Args:
-            agent_type: Loại agent cần chuyển hướng đến
-            request: Nội dung yêu cầu cần chuyển hướng
-            session_id: ID của phiên trò chuyện
-            context: Context của cuộc trò chuyện
+            agent_type: Loại agent
+            request: Nội dung yêu cầu
+            session_id: ID phiên trò chuyện
+            context: Context bổ sung (optional)
             
         Returns:
-            Dict[str, Any]: Kết quả của việc chuyển hướng
+            Dict[str, Any]: Kết quả từ agent
         """
-        # Kiểm tra xem agent có được đăng ký không
+        self.logger.info(f"Chuyển hướng yêu cầu đến {agent_type} Agent")
+        
+        # Kiểm tra xem agent đã được đăng ký chưa
         if agent_type not in self.registered_agents:
+            error_msg = f"Agent loại {agent_type} chưa được đăng ký"
+            self.logger.error(error_msg)
             return {
                 "success": False,
-                "error": f"Agent loại {agent_type} không được tìm thấy hoặc chưa được đăng ký"
+                "agent_type": agent_type,
+                "response": f"Rất tiếc, hiện tại không thể xử lý yêu cầu này vì {error_msg}. Vui lòng thử lại sau.",
+                "error": error_msg
             }
         
         try:
-            self.logger.info(f"Đang chuyển hướng yêu cầu đến {agent_type} Agent")
-            
-            # Lấy agent từ danh sách đã đăng ký
+            # Lấy agent từ registry
             agent = self.registered_agents[agent_type]
             
-            # Gọi agent xử lý yêu cầu
-            result = await agent.process_request(request, session_id, context)
+            # Xử lý yêu cầu bằng agent
+            response = await agent.process_message(request)
             
             return {
                 "success": True,
                 "agent_type": agent_type,
-                "response": result.get("response", ""),
-                "data": result
+                "response": response,
+                "error": None
             }
-            
         except Exception as e:
-            self.logger.error(f"Lỗi khi chuyển hướng yêu cầu đến {agent_type} Agent: {str(e)}")
+            error_msg = f"Lỗi khi xử lý yêu cầu với {agent_type} Agent: {str(e)}"
+            self.logger.error(error_msg)
             return {
                 "success": False,
                 "agent_type": agent_type,
-                "error": f"Lỗi khi chuyển hướng yêu cầu: {str(e)}"
+                "response": f"Rất tiếc, đã xảy ra lỗi khi xử lý yêu cầu của bạn. Vui lòng thử lại sau.",
+                "error": error_msg
             }
     
     async def execute(self, **kwargs) -> Dict[str, Any]:
         """Thực thi tool với tham số từ ADK
         
         Args:
-            **kwargs: Tham số, bao gồm agent_type, request, session_id và context
+            **kwargs: Tham số
             
         Returns:
-            Dict[str, Any]: Kết quả của việc chuyển hướng
+            Dict[str, Any]: Kết quả routing
         """
-        agent_type = kwargs.get("agent_type", "")
-        request = kwargs.get("request", "")
-        session_id = kwargs.get("session_id", "")
+        agent_type = kwargs.get("agent_type")
+        request = kwargs.get("request")
+        session_id = kwargs.get("session_id")
         context = kwargs.get("context", {})
         
-        if not agent_type:
+        # Validate agent_type
+        try:
+            agent_type_enum = AgentType(agent_type)
+        except ValueError:
             return {
                 "success": False,
-                "error": "Thiếu tham số agent_type"
+                "agent_type": agent_type,
+                "response": f"Loại agent không hợp lệ: {agent_type}",
+                "error": f"Invalid agent type: {agent_type}"
             }
         
-        if not request:
-            return {
-                "success": False,
-                "error": "Thiếu tham số request"
-            }
-        
-        if not session_id:
-            return {
-                "success": False,
-                "error": "Thiếu tham số session_id"
-            }
-        
-        return await self.route_request(agent_type, request, session_id, context) 
+        # Chuyển hướng yêu cầu
+        return await self.route_to_agent(agent_type_enum, request, session_id, context) 
