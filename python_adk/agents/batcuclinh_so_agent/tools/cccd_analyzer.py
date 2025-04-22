@@ -5,7 +5,7 @@ CCCD Analyzer Tool for Bát Cục Linh Số method
 from google.adk.tools import FunctionTool
 from typing import Dict, Any, Optional
 from python_adk.constants.bat_tinh import BAT_TINH
-from python_adk.constants.combinations import COMBINATION_INTERPRETATIONS
+from python_adk.constants.combinations import COMBINATIONS
 
 def analyze_cccd_number(cccd_number: str, purpose: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -58,12 +58,12 @@ def analyze_cccd_number(cccd_number: str, purpose: Optional[str] = None) -> Dict
             next_tinh = analysis[i + 1]
             combination_key = f"{current['tinh']}_{next_tinh['tinh']}"
             
-            if combination_key in COMBINATION_INTERPRETATIONS:
+            if combination_key in COMBINATIONS:
                 combinations.append({
                     "numbers": f"{current['number']}-{next_tinh['number']}",
                     "combination": combination_key,
-                    "description": COMBINATION_INTERPRETATIONS[combination_key]["description"],
-                    "detailed_description": COMBINATION_INTERPRETATIONS[combination_key]["detailed_description"]
+                    "description": COMBINATIONS[combination_key]["description"],
+                    "detailed_description": COMBINATIONS[combination_key]["detailedDescription"]
                 })
 
         return {
