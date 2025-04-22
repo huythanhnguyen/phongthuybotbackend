@@ -18,12 +18,29 @@ const app = express();
 // Middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://phongthuyso.onrender.com', 'https://bat-cuc-linh-so.phongthuyso.onrender.com']
-    : '*',
-  credentials: true
-}));
+
+// Thiết lập CORS, cho phép cả API URL và Frontend URL trong production
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [
+      'https://phongthuyso.onrender.com',
+      'https://bat-cuc-linh-so.phongthuyso.onrender.com',
+      'https://a2aphongthuyso-front.onrender.com'
+    ]
+  : ['*'];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // cho phép yêu cầu không có origin (ví dụ từ curl hoặc server-side)
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} không được phép bởi CORS`));
+      }
+    },
+    credentials: true
+  })
+);
+
 app.use(morgan('dev'));
 
 // Import routes
