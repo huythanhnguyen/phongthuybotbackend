@@ -19,6 +19,39 @@ class BatCucLinhSoAgent(LlmAgent):
             tools=tools or []
         )
 
+    async def process_message(self, message: str) -> str:
+        """
+        Process a message and return a response
+        
+        Args:
+            message: The message to process
+            
+        Returns:
+            Response string
+        """
+        try:
+            # Check if message contains phone number
+            if any(char.isdigit() for char in message) and len(message) >= 10:
+                # Try to extract phone number
+                phone_number = ''.join(filter(str.isdigit, message))
+                if len(phone_number) >= 10:
+                    result = await self.analyze_phone_number(phone_number)
+                    return result.get("message", "Không thể phân tích số điện thoại")
+
+            # Check if message contains CCCD number
+            if any(char.isdigit() for char in message) and len(message) >= 12:
+                # Try to extract CCCD number
+                cccd_number = ''.join(filter(str.isdigit, message))
+                if len(cccd_number) >= 12:
+                    result = await self.analyze_cccd_number(cccd_number)
+                    return result.get("message", "Không thể phân tích số CCCD")
+
+            # Default response if no analysis is possible
+            return "Xin lỗi, tôi không thể phân tích thông tin bạn cung cấp. Vui lòng cung cấp số điện thoại hoặc số CCCD để phân tích."
+
+        except Exception as e:
+            return f"Đã xảy ra lỗi khi xử lý tin nhắn: {str(e)}"
+
     async def analyze_phone_number(self, phone_number: str, purpose: Optional[str] = None) -> Dict[str, Any]:
         """
         Analyze a phone number using Bát Cục Linh Số method
