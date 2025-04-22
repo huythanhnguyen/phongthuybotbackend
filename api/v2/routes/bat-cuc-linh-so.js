@@ -89,17 +89,44 @@ router.post('/phone', async (req, res) => {
       });
     }
 
-    // Phân tích số điện thoại
-    const result = await batCucLinhSoService.analyzePhoneNumber(phoneNumber);
-
-    // Trả về kết quả
-    res.status(200).json({
-      success: true,
-      message: 'Phân tích số điện thoại thành công',
-      result
-    });
+    try {
+      // Phân tích số điện thoại
+      const result = await batCucLinhSoService.analyzePhoneNumber(phoneNumber);
+      
+      // Kiểm tra nếu kết quả là fallback
+      if (result && result.message && result.message.includes('Không kết nối được')) {
+        // Trả về kết quả fallback với status 206 (Partial Content)
+        return res.status(206).json({
+          success: true,
+          partial: true,
+          message: 'Phân tích cơ bản số điện thoại thành công (chế độ offline)',
+          result
+        });
+      }
+      
+      // Trả về kết quả đầy đủ
+      res.status(200).json({
+        success: true,
+        message: 'Phân tích số điện thoại thành công',
+        result
+      });
+    } catch (analysisError) {
+      console.error('⚠️ Lỗi khi phân tích số điện thoại:', analysisError);
+      
+      // Kiểm tra nếu là lỗi kết nối
+      if (analysisError.message && analysisError.message.includes('kết nối')) {
+        return res.status(503).json({
+          success: false,
+          message: 'Dịch vụ phân tích tạm thời không khả dụng',
+          error: analysisError.message
+        });
+      }
+      
+      // Lỗi khác
+      throw analysisError;
+    }
   } catch (error) {
-    console.error('Lỗi khi phân tích số điện thoại:', error);
+    console.error('❌ Lỗi khi phân tích số điện thoại:', error);
     res.status(500).json({
       success: false,
       message: 'Đã xảy ra lỗi khi phân tích số điện thoại',

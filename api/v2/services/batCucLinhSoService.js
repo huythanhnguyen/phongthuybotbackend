@@ -1,5 +1,7 @@
 const axios = require('axios');
 const dotenv = require('dotenv');
+const fs = require('fs');
+const path = require('path');
 
 // Load environment variables
 dotenv.config();
@@ -22,13 +24,79 @@ class BatCucLinhSoService {
     const baseURL = NODE_ENV === 'production' ? PROD_ADK_URL : DEV_ADK_URL;
     console.log(`🔗 Kết nối đến Python ADK: ${baseURL}`);
     
+    // Khởi tạo logger
+    this.setupLogger();
+    
     this.apiClient = axios.create({
       baseURL: baseURL,
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': API_KEY
-      }
+      },
+      timeout: 10000, // 10 second timeout
+      maxRedirects: 3,
+      retry: 2, // Thử lại 2 lần nếu gặp lỗi
+      retryDelay: 1000 // Chờ 1 giây trước khi thử lại
     });
+    
+    // Thêm interceptor để tự động thử lại khi gặp lỗi
+    this.apiClient.interceptors.response.use(undefined, async (err) => {
+      const { config } = err;
+      if (!config || !config.retry) {
+        return Promise.reject(err);
+      }
+      
+      // Giảm số lần retry còn lại
+      config.retry -= 1;
+      
+      if (config.retry === 0) {
+        return Promise.reject(err);
+      }
+      
+      // Tạo promise delay
+      const delayRetry = new Promise(resolve => {
+        setTimeout(resolve, config.retryDelay || 1000);
+      });
+      
+      // Thử lại sau khi delay
+      await delayRetry;
+      console.log('🔄 Đang thử lại kết nối đến Python ADK...');
+      this.log('info', `Đang thử lại kết nối đến Python ADK: ${config.url}`);
+      return this.apiClient(config);
+    });
+  }
+  
+  /**
+   * Thiết lập logger
+   */
+  setupLogger() {
+    try {
+      const logDir = path.join(__dirname, '../../../logs');
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+      this.logPath = path.join(logDir, 'adk-connection.log');
+      this.log('info', '🔢 Khởi tạo Bát Cục Linh Số Service');
+    } catch (error) {
+      console.error('❌ Không thể thiết lập logger:', error);
+    }
+  }
+  
+  /**
+   * Ghi log
+   * @param {string} level - Cấp độ log (info, warn, error)
+   * @param {string} message - Thông báo log
+   */
+  log(level, message) {
+    if (!this.logPath) return;
+    
+    try {
+      const timestamp = new Date().toISOString();
+      const logEntry = `[${timestamp}] [${level.toUpperCase()}] ${message}\n`;
+      fs.appendFileSync(this.logPath, logEntry);
+    } catch (error) {
+      console.error('❌ Lỗi khi ghi log:', error);
+    }
   }
 
   /**
