@@ -6,7 +6,7 @@ Triển khai BatCucLinhSoAgent - Agent phân tích phong thủy số học.
 
 from typing import Any, Dict, List, Optional, Set, Union
 
-from google.adk.tools.agent_tool import agent_tool, agent_tool_registry
+from google.adk.tools import agent_tool_registry, AgentTool
 from google.adk.type_inference import annotate_type
 
 from python_adk.agents.base_agent import BaseAgent
@@ -43,11 +43,9 @@ class BatCucLinhSoAgent(BaseAgent):
     
     def _register_tools(self) -> None:
         """Đăng ký các tools cho BatCucLinhSo Agent"""
-        agent_tool_registry.register(self.analyze_phone)
-        agent_tool_registry.register(self.analyze_cccd)
-        agent_tool_registry.register(self.suggest_phone)
-        agent_tool_registry.register(self.analyze_bank_account)
-        agent_tool_registry.register(self.generate_password)
+        # Các phương thức đã có decorator @agent_tool_registry.register
+        # nên không cần đăng ký thủ công như trước đây
+        pass
     
     def _init_fengshui_database(self) -> None:
         """Khởi tạo cơ sở dữ liệu phong thủy số học"""
@@ -85,7 +83,7 @@ class BatCucLinhSoAgent(BaseAgent):
             "9": {"meaning": "Tượng trưng cho sự hoàn thành, lý tưởng, nhân đạo", "score": 7},
         }
     
-    @agent_tool
+    @agent_tool_registry.register
     @annotate_type
     def analyze_phone(self, request: PhoneAnalysisRequest) -> Dict[str, Any]:
         """
@@ -193,7 +191,7 @@ class BatCucLinhSoAgent(BaseAgent):
         
         return recommendations
     
-    @agent_tool
+    @agent_tool_registry.register
     @annotate_type
     def analyze_cccd(self, request: CCCDAnalysisRequest) -> Dict[str, Any]:
         """
@@ -287,7 +285,7 @@ class BatCucLinhSoAgent(BaseAgent):
         else:
             return f"CCCD của bạn có phong thủy kém. Đặc biệt cặp số {min_pair['pair']} ({min_pair['name']}) ở vị trí {min_pair['position']} cần được lưu ý."
     
-    @agent_tool
+    @agent_tool_registry.register
     @annotate_type
     def suggest_phone(self, purpose: str, preferred_digits: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
@@ -392,7 +390,7 @@ class BatCucLinhSoAgent(BaseAgent):
         # Giới hạn điểm
         return min(max(score, 1.0), 10.0)
     
-    @agent_tool
+    @agent_tool_registry.register
     @annotate_type
     def analyze_bank_account(self, request: BankAccountRequest) -> Dict[str, Any]:
         """
@@ -477,7 +475,7 @@ class BatCucLinhSoAgent(BaseAgent):
             ]
         }
     
-    @agent_tool
+    @agent_tool_registry.register
     @annotate_type
     def generate_password(self, request: PasswordRequest) -> Dict[str, Any]:
         """

@@ -1,31 +1,40 @@
-[project]
-name = "phongthuybot"
-version = "0.1.0"
-description = "Hệ thống phân tích phong thủy số học sử dụng kiến trúc Multi-Agent"
-authors = [
-    {name = "Phong Thuy Bot Team"}
-]
-license = "Apache License 2.0"
-readme = "README.md"
-requires-python = ">=3.13"
-
-[tool.poetry.dependencies]
-python = "^3.13"
-pydantic = "^2.10.0"
-python-dotenv = "^1.0.0"
-google-genai = "^1.9.0"
-google-adk = ">=0.0.2"
-fastapi = "^0.110.0"
-uvicorn = "^0.30.0"
-typing-extensions = "^4.10.0"
-
-[tool.poetry.group.dev]
-optional = true
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
-google-adk = { version = ">=0.0.2", extras = ["eval"] }
-
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api" 
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "python_adk"
+version = "0.1.0"
+authors = [
+    {name = "Phong Thủy Số", email = "phongthuynumerology@example.com"},
+]
+description = "Hệ thống phân tích phong thủy số học qua Google ADK"
+readme = "README.md"
+requires-python = ">=3.13.0"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "google-adk>=0.2.0",
+    "google-generativeai>=0.3.1",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.23.0",
+    "pydantic>=2.5.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4.0",
+    "black>=23.9.0",
+    "flake8>=6.1.0",
+    "pytest-cov>=4.1.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/phongthuybotbackend"
+"Bug Tracker" = "https://github.com/yourusername/phongthuybotbackend/issues" 

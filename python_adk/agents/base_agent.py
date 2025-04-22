@@ -8,7 +8,7 @@ import abc
 from typing import Any, Dict, List, Optional, Set, Type, Union
 
 from google.adk.agents import Agent as GeminiAgent
-from google.adk.tools.agent_tool import agent_tool_registry
+from google.adk.tools import agent_tool_registry
 from google.adk.type_inference import annotate_type
 
 from python_adk.shared_libraries.logger import get_logger
@@ -103,8 +103,8 @@ class BaseAgent(GeminiAgent):
         self.logger.info(f"Nhận tin nhắn: {user_message}")
         self.add_to_history("user", user_message)
         
-        # Sử dụng phương thức predict của parent class (GeminiAgent)
-        response = super().predict(user_message)
+        # Sử dụng phương thức invoke thay vì predict theo khuyến nghị ADK v0.2.0
+        response = super().invoke(user_message)
         
         self.add_to_history("assistant", response)
         self.logger.info(f"Phản hồi: {response}")
