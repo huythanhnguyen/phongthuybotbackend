@@ -10,10 +10,55 @@ import os
 import logging
 from typing import Dict, Any, List, Optional, Tuple
 
-# Google ADK imports
-from google.adk.core.tool import Tool
-from google.adk.generators.llm import LLMGenerator
+# Thay thế import Tool của Google ADK
+# from google.adk.core.tool import Tool
+# from google.adk.generators.llm import LLMGenerator
 
+# Nếu Tool chưa được định nghĩa ở file này, thêm định nghĩa
+class Tool:
+    """Lớp cơ sở cho các công cụ tùy chỉnh"""
+    
+    def __init__(self, name=None, description=None, parameters=None, required_params=None, returns=None):
+        """Khởi tạo Tool
+        
+        Args:
+            name: Tên của công cụ
+            description: Mô tả của công cụ
+            parameters: Danh sách tham số đầu vào
+            required_params: Danh sách tham số bắt buộc
+            returns: Cấu trúc dữ liệu trả về
+        """
+        self.name = name
+        self.description = description
+        self.parameters = parameters or []
+        self.required_params = required_params or []
+        self.returns = returns or {}
+    
+    async def execute(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Phương thức thực thi công cụ, cần được ghi đè"""
+        raise NotImplementedError("Subclasses must implement execute method")
+
+# Tạo class LLMGenerator tùy chỉnh
+class LLMGenerator:
+    """Lớp giả lập LLMGenerator để thay thế Google ADK LLMGenerator"""
+    
+    def __init__(self, name=None, model=None):
+        """Khởi tạo LLMGenerator
+        
+        Args:
+            name: Tên của generator
+            model: Tên model sử dụng
+        """
+        self.name = name
+        self.model = model
+    
+    async def generate(self, prompt, **kwargs):
+        """Phương thức giả lập sinh văn bản"""
+        # Phương thức này sẽ được thay thế bằng triển khai thực tế sau
+        return {
+            "text": f"Phân tích cho {prompt}",
+            "usage": {"total_tokens": 100}
+        }
 
 class CCCDAnalyzer(Tool):
     """Tool phân tích số CCCD/CMND theo Bát Cục Linh Số"""
