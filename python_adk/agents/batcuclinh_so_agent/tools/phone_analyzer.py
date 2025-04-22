@@ -253,4 +253,4 @@ class PhoneAnalyzer:
         }
 
 # Tạo Function Tool thay vì class tự định nghĩa
-phone_analyzer_tool = FunctionTool(PhoneAnalyzer.analyze_phone_number, "Analyze phone numbers using Bát Cục Linh Số method") 
+phone_analyzer_tool = FunctionTool(PhoneAnalyzer.analyze_phone_number) 

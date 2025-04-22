@@ -82,4 +82,4 @@ def analyze_cccd_number(cccd_number: str, purpose: Optional[str] = None) -> Dict
         raise ValueError(f"Error analyzing CCCD number: {str(e)}")
 
 # Create the tool
-cccd_analyzer_tool = FunctionTool(analyze_cccd_number, "Analyze CCCD numbers using Bát Cục Linh Số method") 
+cccd_analyzer_tool = FunctionTool(analyze_cccd_number) 
