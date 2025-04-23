@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Set, Union
 from google.adk.tools import FunctionTool # Import FunctionTool
 
 # Import agent_tool và agent_tool_registry từ root_agent để sử dụng implement mới
-from python_adk.agents.root_agent.agent import AgentType # Chỉ import AgentType
+# from python_adk.agents.root_agent.agent import AgentType # Chỉ import AgentType
 from python_adk.agents.base_agent import BaseAgent # Import BaseAgent để gọi super
 from python_adk.prompt import get_agent_prompt
 from python_adk.shared_libraries.logger import get_logger
@@ -34,6 +34,8 @@ class BatCucLinhSoAgent(BaseAgent):
             model_name (str): Tên model sử dụng cho agent
             name (str): Tên của agent
         """
+        # Import AgentType inside the method to avoid circular import
+        from python_adk.agents.root_agent.agent import AgentType
         # Lấy prompt làm instruction
         instruction = get_agent_prompt(AgentType.BATCUCLINH_SO)
         
