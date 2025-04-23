@@ -33,11 +33,6 @@ class PaymentAgent(BaseAgent):
             model_name=model_name,
             instruction=instruction
         )
-    
-    def _register_tools(self) -> None:
-        """Đăng ký các tools cho Payment Agent"""
-        # Chưa có tools đặc thù cho payment
-        pass
 
 # Tạo instance của PaymentAgent
 payment_agent = PaymentAgent() 

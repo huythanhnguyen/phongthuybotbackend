@@ -7,10 +7,11 @@ Triển khai BatCucLinhSoAgent - Agent phân tích phong thủy số học.
 from typing import Any, Dict, List, Optional, Set, Union
 
 # Import AgentTool từ google.adk.tools.agent_tool
-from google.adk.tools.agent_tool import AgentTool
+from google.adk.tools import FunctionTool # Import FunctionTool
 
 # Import agent_tool và agent_tool_registry từ root_agent để sử dụng implement mới
-from python_adk.agents.root_agent.agent import agent_tool, agent_tool_registry, annotate_type, AgentType
+from python_adk.agents.root_agent.agent import AgentType # Chỉ import AgentType
+from python_adk.agents.base_agent import BaseAgent # Import BaseAgent để gọi super
 from python_adk.prompt import get_agent_prompt
 from python_adk.shared_libraries.logger import get_logger
 from python_adk.shared_libraries.models import (
@@ -19,14 +20,13 @@ from python_adk.shared_libraries.models import (
     BankAccountRequest,
     PasswordRequest
 )
-from python_adk.agents.base_agent import BaseAgent
 
 class BatCucLinhSoAgent(BaseAgent):
     """
     BatCucLinhSo Agent - Agent chuyên biệt phân tích phong thủy số học
     """
     
-    def __init__(self, model_name: str = "gemini-2.0-flash", name: str = "batcuclinh_so_agent"):
+    def __init__(self, model_name: str = "gemini-2.0-flash", name: str = "bat_cuc_linh_so_agent"):
         """
         Khởi tạo BatCucLinhSo Agent
         
@@ -37,21 +37,25 @@ class BatCucLinhSoAgent(BaseAgent):
         # Lấy prompt làm instruction
         instruction = get_agent_prompt(AgentType.BATCUCLINH_SO)
         
-        # Gọi constructor của BaseAgent
+        # Khởi tạo cơ sở dữ liệu phong thủy số học TRƯỚC khi gọi super
+        self._init_fengshui_database()
+        
+        # Tạo danh sách tools từ các phương thức của class
+        agent_tools = [
+            FunctionTool(self.analyze_phone),
+            FunctionTool(self.analyze_cccd),
+            FunctionTool(self.suggest_phone),
+            FunctionTool(self.analyze_bank_account),
+            FunctionTool(self.generate_password)
+        ]
+        
+        # Gọi constructor của BaseAgent, truyền tools vào
         super().__init__(
             name=name,
             model_name=model_name,
-            instruction=instruction
+            instruction=instruction,
+            tools=agent_tools # Truyền danh sách tools
         )
-        
-        # Khởi tạo cơ sở dữ liệu phong thủy số học
-        self._init_fengshui_database()
-    
-    def _register_tools(self) -> None:
-        """Đăng ký các tools cho BatCucLinhSo Agent"""
-        # Các phương thức đã có decorator @agent_tool_registry.register
-        # nên không cần đăng ký thủ công như trước đây
-        pass
     
     def _init_fengshui_database(self) -> None:
         """Khởi tạo cơ sở dữ liệu phong thủy số học"""
@@ -89,8 +93,6 @@ class BatCucLinhSoAgent(BaseAgent):
             "9": {"meaning": "Tượng trưng cho sự hoàn thành, lý tưởng, nhân đạo", "score": 7},
         }
     
-    @agent_tool
-    @annotate_type
     def analyze_phone(self, request: PhoneAnalysisRequest) -> Dict[str, Any]:
         """
         Phân tích số điện thoại theo nguyên lý Bát Cực Linh Số
@@ -197,8 +199,6 @@ class BatCucLinhSoAgent(BaseAgent):
         
         return recommendations
     
-    @agent_tool
-    @annotate_type
     def analyze_cccd(self, request: CCCDAnalysisRequest) -> Dict[str, Any]:
         """
         Phân tích 6 số cuối của CCCD theo nguyên lý Bát Cực Linh Số
@@ -291,8 +291,6 @@ class BatCucLinhSoAgent(BaseAgent):
         else:
             return f"CCCD của bạn có phong thủy kém. Đặc biệt cặp số {min_pair['pair']} ({min_pair['name']}) ở vị trí {min_pair['position']} cần được lưu ý."
     
-    @agent_tool
-    @annotate_type
     def suggest_phone(self, purpose: str, preferred_digits: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Đề xuất số điện thoại phù hợp với mục đích
@@ -396,8 +394,6 @@ class BatCucLinhSoAgent(BaseAgent):
         # Giới hạn điểm
         return min(max(score, 1.0), 10.0)
     
-    @agent_tool
-    @annotate_type
     def analyze_bank_account(self, request: BankAccountRequest) -> Dict[str, Any]:
         """
         Phân tích hoặc đề xuất số tài khoản ngân hàng
@@ -481,8 +477,6 @@ class BatCucLinhSoAgent(BaseAgent):
             ]
         }
     
-    @agent_tool
-    @annotate_type
     def generate_password(self, request: PasswordRequest) -> Dict[str, Any]:
         """
         Tạo mật khẩu theo phong thủy số học

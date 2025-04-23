@@ -33,11 +33,6 @@ class UserAgent(BaseAgent):
             model_name=model_name,
             instruction=instruction
         )
-    
-    def _register_tools(self) -> None:
-        """Đăng ký các tools cho User Agent"""
-        # Chưa có tools đặc thù cho user
-        pass
 
 # Tạo instance của UserAgent
 user_agent = UserAgent() 

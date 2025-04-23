@@ -6,13 +6,14 @@ Lớp này dựa trên RootAgent nhưng chỉ chứa các phương thức cần 
 """
 
 import abc
-from typing import Any, Dict, List, Optional, Set, Type, Union
+from typing import Any, Dict, List, Optional, Set, Type, Union, Callable
 
-# Tái sử dụng các hàm tiện ích từ RootAgent để đảm bảo tính nhất quán
-from python_adk.agents.root_agent.agent import agent_tool_registry, agent_tool, annotate_type
+# Bỏ import không cần thiết và gây lỗi
+# from python_adk.agents.root_agent.agent import agent_tool_registry, agent_tool, annotate_type
 
 # Import Agent từ google.adk.agents
 from google.adk.agents import Agent as GeminiAgent
+from google.genai.types import GenerateContentConfig # Thêm import nếu cần
 
 from python_adk.shared_libraries.logger import get_logger
 
@@ -20,10 +21,18 @@ from python_adk.shared_libraries.logger import get_logger
 class BaseAgent:
     """
     Lớp cơ sở cho tất cả các agent chuyên biệt trong hệ thống Phong Thủy Số.
-    Thừa kế các chức năng từ Root Agent nhưng được đơn giản hóa.
+    Bao bọc GeminiAgent và cung cấp các phương thức tiện ích.
     """
 
-    def __init__(self, name: str, model_name: str = "gemini-2.0-flash", instruction: str = None):
+    def __init__(
+        self,
+        name: str,
+        model_name: str = "gemini-2.0-flash",
+        instruction: str = None,
+        tools: Optional[List[Callable]] = None, # Thêm tham số tools
+        generate_content_config: Optional[GenerateContentConfig] = None,
+        after_agent_callback: Optional[Callable] = None
+    ):
         """
         Khởi tạo BaseAgent
         
@@ -31,35 +40,31 @@ class BaseAgent:
             name (str): Tên của agent
             model_name (str): Tên model Gemini sử dụng cho agent
             instruction (str): Instruction cho agent
+            tools (Optional[List[Callable]]): Danh sách các tool cho agent
+            generate_content_config (Optional[GenerateContentConfig]): Cấu hình generation
+            after_agent_callback (Optional[Callable]): Callback sau mỗi lượt agent
         """
         self.name = name
         self.model_name = model_name
         self.instruction = instruction
+        self.tools = tools or []
         
         # Khởi tạo agent thật từ Google ADK
         self._agent = GeminiAgent(
             name=name,
             model=model_name,
-            instruction=instruction
+            instruction=instruction,
+            tools=self.tools, # Truyền tools vào GeminiAgent
+            generate_content_config=generate_content_config, # Truyền config
+            after_agent_callback=after_agent_callback # Truyền callback
         )
         
         self.logger = get_logger(f"{self.__class__.__name__}", log_to_file=True)
-        self.logger.info(f"Khởi tạo {self.name} với model {model_name}")
+        self.logger.info(f"Khởi tạo {self.name} với model {model_name} và {len(self.tools)} tools")
         
         # Các thuộc tính mở rộng 
         self.current_context: Dict[str, Any] = {}
         self.conversation_history: List[Dict[str, Any]] = []
-        
-        # Đăng ký các tools
-        self._register_tools()
-    
-    @abc.abstractmethod
-    def _register_tools(self) -> None:
-        """
-        Đăng ký các tools cho agent.
-        Cần được override trong các lớp con.
-        """
-        pass
     
     def update_context(self, key: str, value: Any) -> None:
         """
@@ -103,7 +108,6 @@ class BaseAgent:
         self.conversation_history = []
         self.logger.info("Đã xóa lịch sử hội thoại")
     
-    @annotate_type
     def process_message(self, user_message: str) -> str:
         """
         Xử lý tin nhắn từ người dùng, sử dụng GeminiAgent thực tế
