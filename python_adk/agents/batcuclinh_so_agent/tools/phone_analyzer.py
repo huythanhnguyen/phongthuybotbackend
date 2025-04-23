@@ -4,7 +4,7 @@ Phone Analyzer: Tool để phân tích số điện thoại theo phương pháp 
 
 import re
 from typing import Dict, Any, List, Optional
-# Sử dụng Google ADK FunctionTool thay vì Tool class tự định nghĩa
+# Sử dụng Google ADK FunctionTool
 from google.adk.tools import FunctionTool
 import os
 from python_adk.constants.bat_tinh import BAT_TINH

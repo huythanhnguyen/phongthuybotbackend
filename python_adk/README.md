@@ -106,7 +106,7 @@ python_adk/
 
 Từ phiên bản 0.2.0, Google ADK đã thay đổi một số API và cách import:
 
-- Sử dụng `from google.adk.tools import agent_tool_registry, AgentTool` thay vì `from google.adk.tools.agent_tool import agent_tool, agent_tool_registry`
+- Sử dụng `from google.adk.tools import agent_tool_registry` và `from google.adk.tools.agent_tool import AgentTool` thay vì `from google.adk.tools.agent_tool import agent_tool, agent_tool_registry`
 - Sử dụng decorator `@agent_tool_registry.register` thay vì `@agent_tool`
 - Sử dụng phương thức `invoke()` thay vì `predict()` hoặc `run()`
 
@@ -116,7 +116,8 @@ Nếu gặp lỗi "cannot import name 'agent_tool' from 'google.adk.tools.agent_
 
 1. Phiên bản Google ADK đã được cập nhật lên >=0.2.0
 2. Thay đổi import và decorator trong mã nguồn:
-   - `from google.adk.tools import agent_tool_registry, AgentTool`
+   - `from google.adk.tools import agent_tool_registry`
+   - `from google.adk.tools.agent_tool import AgentTool`
    - `@agent_tool_registry.register`
 
 ### 3. Module `imp` trong Python 3.13

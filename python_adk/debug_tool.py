@@ -90,7 +90,8 @@ def check_google_adk_modules() -> Dict[str, Dict[str, bool]]:
         # Kiểm tra các module con
         try:
             # Kiểm tra API mới (từ v0.2.0 trở lên)
-            from google.adk.tools import agent_tool_registry, AgentTool
+            from google.adk.tools.agent_tool import AgentTool
+            from google.adk.tools import agent_tool_registry
             modules["Google ADK"]["tools"] = True
         except ImportError:
             # Thử kiểm tra API cũ
@@ -220,7 +221,8 @@ def main():
     # Kiểm tra cách import Google ADK với API mới
     print_header("Ví dụ về cách import Google ADK đúng")
     print(f"{CYAN}# API mới (Google ADK >= 0.2.0, Python 3.13+){RESET}")
-    print(f"{CYAN}from google.adk.tools import agent_tool_registry, AgentTool{RESET}")
+    print(f"{CYAN}from google.adk.tools.agent_tool import AgentTool{RESET}")
+    print(f"{CYAN}from google.adk.tools import agent_tool_registry{RESET}")
     print(f"{CYAN}from google.adk.type_inference import annotate_type{RESET}")
     print(f"{CYAN}{RESET}")
     print(f"{CYAN}@agent_tool_registry.register{RESET}")

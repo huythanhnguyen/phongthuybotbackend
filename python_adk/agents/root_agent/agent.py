@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Set, Type, Union
 
 # Import Agent từ google.adk.agents
 from google.adk.agents import Agent as GeminiAgent
-from google.adk.tools import AgentTool
+from google.adk.tools.agent_tool import AgentTool
 from google.genai.types import GenerateContentConfig
 
 # Định nghĩa agent_tool để tương thích với code hiện tại
