@@ -14,8 +14,8 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 from fastapi import FastAPI
 
-from python_adk.agents.root_agent.agent import AgentType
-from python_adk.registry import agent_registry
+# Import the root agent instance directly
+from python_adk.agents import root_agent
 from python_adk.shared_libraries.logger import get_logger
 
 # Khởi tạo ứng dụng FastAPI
@@ -70,8 +70,9 @@ def run_interactive_shell(model_name: str):
     logger = get_logger("InteractiveShell")
     logger.info(f"Khởi động shell tương tác với model {model_name}")
     
-    # Khởi tạo Root Agent
-    root_agent = agent_registry.get_agent(AgentType.ROOT, model_name=model_name)
+    # Sử dụng root_agent đã được khởi tạo
+    # Lưu ý: model_name từ command line hiện không được sử dụng để cấu hình lại root_agent
+    # Nếu cần cấu hình model động, cần cơ chế khác.
     
     print("\n===== Phong Thủy Số - Interactive Shell =====")
     print("Nhập 'exit' hoặc 'quit' để thoát\n")
@@ -86,8 +87,10 @@ def run_interactive_shell(model_name: str):
                 print("Tạm biệt!")
                 break
             
+            # Xử lý input với Root Agent (instance đã import)
+            # Lưu ý: Phương thức 'run' không tồn tại trên GeminiAgent, sử dụng 'invoke'
             # Xử lý input với Root Agent
-            response = root_agent.run(user_input)
+            response = root_agent.invoke(user_input)
             
             # Hiển thị phản hồi
             print(f"\nPhong Thủy Số: {response}")

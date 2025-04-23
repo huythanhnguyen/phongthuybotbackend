@@ -8,7 +8,7 @@ Sử dụng Singleton pattern để đảm bảo chỉ có một registry đư�
 from typing import Dict, Optional, Type
 
 from python_adk.agents.base_agent import BaseAgent
-from python_adk.agents.root_agent.agent import AgentType, RootAgent, root_agent
+from python_adk.agents.root_agent.agent import AgentType, root_agent
 from python_adk.agents.batcuclinh_so_agent import BatCucLinhSoAgent
 from python_adk.agents.payment_agent import PaymentAgent
 from python_adk.agents.user_agent import UserAgent
@@ -72,14 +72,14 @@ class AgentRegistry:
             model_name (Optional[str]): Tên model sử dụng cho agent (nếu cần)
             
         Returns:
-            BaseAgent: Instance của agent được yêu cầu
+            BaseAgent | GeminiAgent: Instance của agent được yêu cầu
             
         Raises:
             ValueError: Nếu loại agent không được đăng ký
         """
         # Nếu là RootAgent, trả về instance đã tạo
-        if agent_type == AgentType.ROOT:
-            return root_agent
+        # if agent_type == AgentType.ROOT:
+        #     return root_agent
             
         # Kiểm tra nếu đã có instance
         if agent_type in self.agent_instances:
@@ -103,8 +103,8 @@ class AgentRegistry:
         
         self.logger.info(f"Đã khởi tạo agent: {agent_type}")
         
-        # Đăng ký agent với RootAgent
-        root_agent.register_agent(agent_type, agent)
+        # Bỏ đăng ký với RootAgent, việc này giờ được làm khi khởi tạo RootAgent
+        # root_agent.register_agent(agent_type, agent)
         
         return agent
     
