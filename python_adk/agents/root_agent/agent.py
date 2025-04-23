@@ -16,6 +16,9 @@ from python_adk.agents.root_agent.tools.intent_classifier import IntentClassifie
 from python_adk.agents.root_agent.tools.context_tracker import ContextTracker
 from python_adk.agents.root_agent.tools.conversation_manager import ConversationManager
 
+# Import AgentType from the new module
+from python_adk.agents.agent_types import AgentType
+
 # Import Sub-Agents
 from python_adk.agents.batcuclinh_so_agent import BatCucLinhSoAgent
 from python_adk.agents.payment_agent import PaymentAgent

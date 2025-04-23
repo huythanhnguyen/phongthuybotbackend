@@ -34,8 +34,8 @@ class BatCucLinhSoAgent(BaseAgent):
             model_name (str): Tên model sử dụng cho agent
             name (str): Tên của agent
         """
-        # Import AgentType inside the method to avoid circular import
-        from python_adk.agents.root_agent.agent import AgentType
+        # Import AgentType from the new module
+        from python_adk.agents.agent_types import AgentType
         # Lấy prompt làm instruction
         instruction = get_agent_prompt(AgentType.BATCUCLINH_SO)
         
