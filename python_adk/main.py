@@ -8,11 +8,12 @@ import os
 import sys
 import argparse
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 from dotenv import load_dotenv
 import google.generativeai as genai
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 # Import the root agent instance directly
 from python_adk.agents import root_agent
@@ -148,8 +149,21 @@ def main():
         # Cấu hình Gemini
         configure_gemini(api_key=args.api_key)
         
-        # Chạy shell tương tác
-        run_interactive_shell(model_name=args.model)
+        # Kiểm tra nếu đang chạy trong môi trường có thể tương tác
+        import sys
+        import os
+        
+        # Kiểm tra nếu stdin được kết nối với terminal (interactive)
+        is_interactive = os.isatty(sys.stdin.fileno()) if hasattr(sys.stdin, 'fileno') else False
+        
+        if is_interactive:
+            # Chỉ chạy shell nếu đang trong môi trường tương tác
+            run_interactive_shell(model_name=args.model)
+        else:
+            # Nếu không phải môi trường tương tác (ví dụ: Render), chỉ khởi tạo và chờ API calls
+            logger = get_logger("Main")
+            logger.info("Khởi động trong môi trường không tương tác. Chờ API requests...")
+            print("Ứng dụng đã khởi động. Chờ API requests...")
         
     except Exception as e:
         logging.error(f"Lỗi khi khởi động ứng dụng: {e}")
@@ -159,6 +173,50 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# Định nghĩa các models cho API
+class UserMessage(BaseModel):
+    """Model cho user message trong API"""
+    message: str
+
+class AgentResponse(BaseModel):
+    """Model cho response từ agent trong API"""
+    response: str
+    
+# --- API Routes ---
+@app.post("/api/chat", response_model=AgentResponse)
+async def chat_with_agent(user_message: UserMessage):
+    """
+    Endpoint cho phép chat với agent thông qua API request
+    """
+    try:
+        # Log the request
+        logger = get_logger("API")
+        logger.info(f"Nhận API request: {user_message.message}")
+        
+        # Gọi root agent để xử lý tin nhắn
+        response = root_agent.invoke(user_message.message)
+        
+        # Trả về response
+        return AgentResponse(response=response)
+    except Exception as e:
+        logger.error(f"Lỗi xử lý API request: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi xử lý request: {str(e)}")
+
+@app.get("/")
+async def root():
+    """
+    Root endpoint, trả về thông tin cơ bản về API
+    """
+    return {
+        "name": "Phong Thủy Số API",
+        "version": "0.1.0",
+        "description": "API cho ứng dụng phân tích phong thủy số học",
+        "endpoints": {
+            "/api/chat": "Gửi tin nhắn đến agent và nhận phản hồi",
+            "/health": "Kiểm tra trạng thái hoạt động của API"
+        }
+    }
 
 @app.get("/health")
 async def health_check():
