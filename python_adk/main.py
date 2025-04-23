@@ -187,31 +187,168 @@ if __name__ == "__main__":
 # Định nghĩa các models cho API
 class UserMessage(BaseModel):
     """Model cho user message trong API"""
-    message: str
+    message: Optional[str] = None  # Make it optional since we might get 'text' instead
+    text: Optional[str] = None  # Thêm field text để tương thích với frontend
+    sessionId: Optional[str] = None  # Thêm field sessionId
+    session_id: Optional[str] = None  # Thêm field session_id để tương thích với Node.js API
+    user_id: Optional[str] = None     # Thêm field user_id để tương thích với Node.js API
+    metadata: Optional[Dict[str, Any]] = None  # Thêm field metadata
+    stream: Optional[bool] = False    # Thêm field stream cho streaming API
 
 class AgentResponse(BaseModel):
     """Model cho response từ agent trong API"""
     response: str
-    
+    text: Optional[str] = None  # Thêm field text để tương thích với frontend
+    success: bool = True
+    agent_type: str = "root"  # Thêm field agent_type để tương thích với Node.js API
+
+class ChatSession(BaseModel):
+    """Model cho chat session"""
+    sessionId: str
+    session_id: Optional[str] = None  # Thêm field session_id để tương thích với Node.js API
+
 # --- API Routes ---
-@app.post("/api/chat", response_model=AgentResponse)
-async def chat_with_agent(user_message: UserMessage):
+# Endpoint /chat cho Node.js API Gateway
+@app.post("/chat")
+async def chat_endpoint(user_message: UserMessage):
     """
-    Endpoint cho phép chat với agent thông qua API request
+    Endpoint chính cho Node.js API Gateway
     """
     try:
         # Log the request
         logger = get_logger("API")
-        logger.info(f"Nhận API request: {user_message.message}")
+        logger.info(f"Nhận API request từ Node.js: {user_message.message or user_message.text}")
         
         # Gọi root agent để xử lý tin nhắn
-        response = root_agent.invoke(user_message.message)
+        message_text = user_message.message or user_message.text or ""
+        response = root_agent.invoke(message_text)
         
-        # Trả về response
-        return AgentResponse(response=response)
+        # Trả về response theo format mà Node.js API Gateway mong đợi
+        return {
+            "response": response,
+            "success": True,
+            "agent_type": "root"
+        }
     except Exception as e:
         logger.error(f"Lỗi xử lý API request: {e}")
         raise HTTPException(status_code=500, detail=f"Lỗi xử lý request: {str(e)}")
+
+# Endpoint /chat/stream cho Node.js API Gateway
+@app.post("/chat/stream")
+async def chat_stream_endpoint(user_message: UserMessage):
+    """
+    Endpoint stream cho Node.js API Gateway
+    """
+    from fastapi.responses import StreamingResponse
+    import json
+    import asyncio
+    
+    try:
+        # Log the request
+        logger = get_logger("API")
+        logger.info(f"Nhận stream request từ Node.js: {user_message.message or user_message.text}")
+        
+        # Gọi root agent để xử lý tin nhắn
+        message_text = user_message.message or user_message.text or ""
+        response = root_agent.invoke(message_text)
+        
+        # Giả lập streaming bằng cách chia nhỏ phản hồi
+        async def fake_stream():
+            # Chia phản hồi thành các chunk nhỏ
+            chunk_size = 10  # Số ký tự mỗi chunk
+            for i in range(0, len(response), chunk_size):
+                chunk = response[i:i+chunk_size]
+                # Format theo định dạng SSE mà Node.js đang mong đợi
+                yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
+                await asyncio.sleep(0.05)  # Tạm dừng để giả lập stream
+            
+            # Gửi sự kiện hoàn thành
+            yield f"data: {json.dumps({'type': 'complete'})}\n\n"
+        
+        # Trả về streaming response
+        return StreamingResponse(
+            fake_stream(),
+            media_type="text/event-stream"
+        )
+    except Exception as e:
+        logger.error(f"Lỗi xử lý stream request: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi xử lý request: {str(e)}")
+
+# Thêm route /agent/chat để tương thích với frontend
+@app.post("/agent/chat", response_model=ChatSession)
+async def create_chat_session():
+    """
+    Tạo phiên chat mới
+    """
+    try:
+        # Generate a simple session ID
+        import uuid
+        session_id = str(uuid.uuid4())
+        
+        # Log the session creation
+        logger = get_logger("API")
+        logger.info(f"Tạo phiên chat mới: {session_id}")
+        
+        # Return the session ID
+        return ChatSession(sessionId=session_id)
+    except Exception as e:
+        logger.error(f"Lỗi tạo phiên chat: {e}")
+        raise HTTPException(status_code=500, detail=f"Đã xảy ra lỗi khi xử lý tin nhắn")
+
+# Thêm route /agent/stream để tương thích với frontend
+@app.post("/agent/stream")
+async def stream_chat(user_message: UserMessage):
+    """
+    Endpoint cho phép chat với agent và nhận response dạng stream
+    """
+    try:
+        # Log the request
+        logger = get_logger("API")
+        logger.info(f"Nhận stream request: {user_message.text}")
+        
+        # Kiểm tra session ID
+        if not user_message.sessionId:
+            raise HTTPException(status_code=400, detail="Không có phiên chat. Vui lòng tải lại trang.")
+        
+        # Gọi root agent để xử lý tin nhắn
+        message_text = user_message.message or user_message.text or ""
+        response = root_agent.invoke(message_text)
+        
+        # Trả về response dạng JSON
+        return {"text": response, "done": True}
+    except Exception as e:
+        logger.error(f"Lỗi xử lý stream request: {e}")
+        raise HTTPException(status_code=500, detail=f"Đã xảy ra lỗi khi xử lý tin nhắn")
+
+# Thêm route /query để tương thích với frontend cũ
+@app.post("/query")
+async def legacy_query(user_message: UserMessage):
+    """
+    Endpoint cũ cho phép query agent
+    """
+    try:
+        # Extract message text from either message or text field
+        message_text = user_message.message or user_message.text or ""
+        response = root_agent.invoke(message_text)
+        return {"response": response}
+    except Exception as e:
+        logger.error(f"Lỗi xử lý query request: {e}")
+        raise HTTPException(status_code=500, detail=f"Đã xảy ra lỗi khi xử lý tin nhắn")
+
+# Thêm API version prefix
+@app.post("/api/v2/agent/chat", response_model=ChatSession)
+async def create_chat_session_v2():
+    """
+    Alias cho /agent/chat với prefix API v2
+    """
+    return await create_chat_session()
+
+@app.post("/api/v2/agent/stream")
+async def stream_chat_v2(user_message: UserMessage):
+    """
+    Alias cho /agent/stream với prefix API v2
+    """
+    return await stream_chat(user_message)
 
 @app.get("/")
 async def root():
@@ -224,6 +361,8 @@ async def root():
         "description": "API cho ứng dụng phân tích phong thủy số học",
         "endpoints": {
             "/api/chat": "Gửi tin nhắn đến agent và nhận phản hồi",
+            "/agent/chat": "Tạo phiên chat mới",
+            "/agent/stream": "Gửi tin nhắn và nhận phản hồi dạng stream",
             "/health": "Kiểm tra trạng thái hoạt động của API"
         }
     }
@@ -234,4 +373,25 @@ async def health_check():
     Endpoint kiểm tra trạng thái hoạt động của ứng dụng.
     Sử dụng bởi Docker healthcheck.
     """
-    return {"status": "healthy", "version": "0.1.0"} 
+    return {"status": "healthy", "version": "0.1.0"}
+
+# Giữ lại /api/chat endpoint cho direct access
+@app.post("/api/chat", response_model=AgentResponse)
+async def chat_with_agent(user_message: UserMessage):
+    """
+    Endpoint cho phép chat với agent thông qua API request trực tiếp
+    """
+    try:
+        # Log the request
+        logger = get_logger("API")
+        logger.info(f"Nhận API request trực tiếp: {user_message.message or user_message.text}")
+        
+        # Gọi root agent để xử lý tin nhắn
+        message_text = user_message.message or user_message.text or ""
+        response = root_agent.invoke(message_text)
+        
+        # Trả về response
+        return AgentResponse(response=response, text=response)
+    except Exception as e:
+        logger.error(f"Lỗi xử lý API request: {e}")
+        raise HTTPException(status_code=500, detail=f"Lỗi xử lý request: {str(e)}") 
