@@ -6,23 +6,11 @@ Triển khai BatCucLinhSoAgent - Agent phân tích phong thủy số học.
 
 from typing import Any, Dict, List, Optional, Set, Union
 
-# Thay đổi import để phù hợp với phiên bản mới của ADK
-try:
-    # Thử cách import mới
-    from google.adk.tools import agent_tool_registry
-    from google.adk.tools.agent_tool import AgentTool
-    
-    # Định nghĩa agent_tool để tương thích với code hiện tại
-    def agent_tool(func):
-        return agent_tool_registry.register(func)
-        
-except ImportError:
-    # Fallback về cách import cũ
-    from google.adk.tools.agent_tool import agent_tool, agent_tool_registry
+# Import AgentTool từ google.adk.tools.agent_tool
+from google.adk.tools.agent_tool import AgentTool
 
-from google.adk.type_inference import annotate_type
-
-from python_adk.agents.base_agent import BaseAgent
+# Import agent_tool và agent_tool_registry từ base_agent để sử dụng implement tự tạo
+from python_adk.agents.base_agent import agent_tool, agent_tool_registry, annotate_type
 from python_adk.agents.root_agent.agent import AgentType
 from python_adk.prompt import get_agent_prompt
 from python_adk.shared_libraries.logger import get_logger
@@ -32,24 +20,30 @@ from python_adk.shared_libraries.models import (
     BankAccountRequest,
     PasswordRequest
 )
-
+from python_adk.agents.base_agent import BaseAgent
 
 class BatCucLinhSoAgent(BaseAgent):
     """
     BatCucLinhSo Agent - Agent chuyên biệt phân tích phong thủy số học
     """
     
-    def __init__(self, model_name: str = "gemini-1.5-pro"):
+    def __init__(self, model_name: str = "gemini-2.0-flash", name: str = "batcuclinh_so_agent"):
         """
         Khởi tạo BatCucLinhSo Agent
         
         Args:
             model_name (str): Tên model sử dụng cho agent
+            name (str): Tên của agent
         """
-        system_prompt = get_agent_prompt(AgentType.BATCUCLINH_SO)
-        super().__init__(system_prompt=system_prompt, model_name=model_name)
+        # Lấy prompt làm instruction
+        instruction = get_agent_prompt(AgentType.BATCUCLINH_SO)
         
-        self.logger = get_logger("BatCucLinhSoAgent", log_to_file=True)
+        # Gọi constructor của BaseAgent
+        super().__init__(
+            name=name,
+            model_name=model_name,
+            instruction=instruction
+        )
         
         # Khởi tạo cơ sở dữ liệu phong thủy số học
         self._init_fengshui_database()
@@ -673,3 +667,6 @@ class BatCucLinhSoAgent(BaseAgent):
             "max_score": 7,
             "strength": strength
         }
+
+# Instantiate the agent for easy import by root_agent
+batcuclinh_so_agent = BatCucLinhSoAgent()

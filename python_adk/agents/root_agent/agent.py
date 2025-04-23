@@ -53,7 +53,7 @@ def _track_request(agent_state, user_input, agent_response):
 
 
 root_agent = Agent(
-    model="gemini-1.5-pro",
+    model="gemini-2.0-flash",
     name="root_agent",
     description="Agent chính điều phối các yêu cầu đến các agent chuyên biệt",
     instruction=get_agent_prompt(AgentType.ROOT),
