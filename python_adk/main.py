@@ -461,16 +461,12 @@ async def stream(message: str, sessionId: str = None, userId: str = None):
             chunks = result['response'].split('\n')
             for chunk in chunks:
                 if chunk.strip():
-                    yield f'data: {json.dumps({"type": "chunk", "content": chunk})}
-'
+                    yield 'data: ' + json.dumps({"type": "chunk", "content": chunk}) + '\n\n'
                     await asyncio.sleep(0.05)  # Giả lập stream
-            yield f'data: {json.dumps({"type": "complete"})}
-'
+            yield 'data: ' + json.dumps({"type": "complete"}) + '\n\n'
         else:
-            yield f'data: {json.dumps({"type": "error", "content": result["error"]})}
-'
-            yield f'data: {json.dumps({"type": "complete"})}
-'
+            yield 'data: ' + json.dumps({"type": "error", "content": result["error"]}) + '\n\n'
+            yield 'data: ' + json.dumps({"type": "complete"}) + '\n\n'
     return StreamingResponse(event_stream(), media_type='text/event-stream')
 
 @app.get('/sessions/{sessionId}')
