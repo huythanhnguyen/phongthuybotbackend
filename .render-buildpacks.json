@@ -1,0 +1,10 @@
+{
+  "buildpacks": [
+    {
+      "name": "heroku/python",
+      "env": {
+        "PYTHON_VERSION": "3.13"
+      }
+    }
+  ]
+} 
