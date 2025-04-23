@@ -51,10 +51,15 @@ def configure_gemini(api_key: Optional[str] = None):
     """
     # Lấy API key từ môi trường nếu không được cung cấp
     if not api_key:
-        api_key = os.getenv("GEMINI_API_KEY")
+        # Ưu tiên lấy từ GOOGLE_API_KEY
+        api_key = os.getenv("GOOGLE_API_KEY")
+        
+        # Nếu không tìm thấy, thử lấy từ GEMINI_API_KEY
+        if not api_key:
+            api_key = os.getenv("GEMINI_API_KEY")
         
     if not api_key:
-        raise ValueError("Không tìm thấy GEMINI_API_KEY. Vui lòng cung cấp trong file .env hoặc trực tiếp.")
+        raise ValueError("Không tìm thấy API key. Vui lòng cung cấp GOOGLE_API_KEY hoặc GEMINI_API_KEY trong môi trường hoặc trực tiếp.")
     
     # Cấu hình Gemini
     genai.configure(api_key=api_key)
@@ -122,7 +127,7 @@ def parse_arguments():
     parser.add_argument(
         "--api-key", 
         type=str, 
-        help="Gemini API key (nếu không cung cấp, sẽ lấy từ GEMINI_API_KEY trong môi trường)"
+        help="Google API key cho Gemini (nếu không cung cấp, sẽ lấy từ GOOGLE_API_KEY hoặc GEMINI_API_KEY trong môi trường)"
     )
     
     return parser.parse_args()
