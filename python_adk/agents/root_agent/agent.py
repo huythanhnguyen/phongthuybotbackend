@@ -21,8 +21,9 @@ from python_adk.agents.agent_types import AgentType
 
 # Import Sub-Agents
 from python_adk.agents.batcuclinh_so_agent import BatCucLinhSoAgent
-from python_adk.agents.payment_agent import PaymentAgent
-from python_adk.agents.user_agent import UserAgent
+# Removed PaymentAgent and UserAgent to fix import issues
+# from python_adk.agents.payment_agent import PaymentAgent
+# from python_adk.agents.user_agent import UserAgent
 
 # Logger and Prompt
 from python_adk.shared_libraries.logger import get_logger
@@ -52,14 +53,16 @@ root_agent_tools = [
 # Assuming sub-agents don't need specific model overrides here
 # and will use their default defined models.
 bat_cuc_linh_so_agent = BatCucLinhSoAgent()
-payment_agent = PaymentAgent()
-user_agent = UserAgent()
+# Removed PaymentAgent and UserAgent to fix import issues
+# payment_agent = PaymentAgent()
+# user_agent = UserAgent()
 
 # List of sub-agents for the Root Agent
 root_agent_sub_agents = [
     bat_cuc_linh_so_agent,
-    payment_agent,
-    user_agent
+    # Removed PaymentAgent and UserAgent to fix import issues
+    # payment_agent,
+    # user_agent
 ]
 
 # --- Agent Configuration ---
