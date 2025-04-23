@@ -25,22 +25,36 @@ Tài liệu này mô tả chi tiết thiết kế và triển khai kiến trúc 
 
 ### Tổng quan kiến trúc
 
-Hệ thống sẽ sử dụng kiến trúc hybrid gồm:
-1. **Backend Node.js**: API Gateway, quản lý DB, và xử lý business logic hiện có
-2. **Backend Python với ADK**: Triển khai các agent thông minh sử dụng Google ADK
+Hệ thống sẽ sử dụng kiến trúc tách biệt với 2 bộ API độc lập:
+
+1. **Backend Node.js (Hiện có)**: API cũ, sẽ được duy trì trong giai đoạn chuyển tiếp và loại bỏ ở phiên bản tiếp theo
+2. **Backend Python với ADK (Mới)**: Triển khai các agent thông minh sử dụng Google ADK với API độc lập
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌───────────────┐
-│   Frontend  │────▶│  API Gateway │────▶│  ADK Agents   │
-│   (Vue.js)  │◀────│   (Node.js)  │◀────│   (Python)    │
-└─────────────┘     └──────────────┘     └───────────────┘
-                           │                     │
-                           ▼                     ▼
-                    ┌──────────────┐     ┌───────────────┐
-                    │   Database   │     │ Model Context │
-                    │  (MongoDB)   │     │   Protocol    │
-                    └──────────────┘     └───────────────┘
+┌─────────────┐     ┌──────────────┐     
+│   Frontend  │────▶│  Node.js API │     
+│   (Vue.js)  │◀────│  (Legacy)    │     
+└─────────────┘     └──────────────┘     
+        │                  │             
+        │                  ▼             
+        │           ┌──────────────┐     
+        │           │   Database   │     
+        │           │  (MongoDB)   │     
+        │           └──────────────┘     
+        │                                
+        │           ┌───────────────┐    
+        ├──────────▶│  Python ADK   │    
+        └──────────▶│    API        │    
+                    └───────────────┘    
+                           │             
+                           ▼             
+                    ┌───────────────┐    
+                    │ Model Context │    
+                    │   Protocol    │    
+                    └───────────────┘    
 ```
+
+Frontend sẽ dần chuyển từ việc sử dụng Node.js API sang gọi trực tiếp các endpoint của Python ADK API.
 
 ### Hệ thống Agents
 
@@ -110,56 +124,36 @@ Hệ thống sẽ triển khai một kiến trúc đa tác tử gồm:
 
      **Quy tắc phân tích chính:**
 
-     1. **Tách thành cặp số**: Số điện thoại/CCCD/STK được tách thành các cặp số liền kề
-        - Ví dụ: 0123456789 → 01, 12, 23, 34, 45, 56, 67, 78, 89
+     1.0 **Chuẩn hóa và Lựa chọn các số ngẫu nhiên**: loại bỏ các khoảng trắng hoặc kí tự đặc biệt, loại bỏ các số format như số 0 ở đâu của số điện thoại ( hoặc số nhà mạng nếu có yêu cầu), loại bỏ các số vùng miền giới tính trong căn cước công dân...
+     1.1 **Tách thành cặp số**: Số điện thoại/CCCD/STK được tách thành các cặp số liền kề
+        - Ví dụ: 0123456789 →  12, 23, 34, 45, 56, 67, 78, 89
 
      2. **Xác định thuộc tính sao**: Mỗi cặp số tương ứng với một sao (cát hoặc hung)
 
      3. **Đánh giá mức năng lượng**: Mỗi cặp số có mức năng lượng từ 1-4 (1: yếu, 4: mạnh)
 
      4. **Phân tích tổ hợp sao**: 
-        - Sao liền kề tạo thành tổ hợp có ý nghĩa riêng
-        - Tổ hợp Cát-Cát: Rất tốt
-        - Tổ hợp Cát-Hung: Trung tính hoặc giảm hiệu quả
-        - Tổ hợp Hung-Hung: Rất xấu
+        - tra tromg constant/batTinh.js
+        - tra tổ hợp trong combination.js
 
      5. **Xử lý số 0 và 5**: 
-        - Số 0: Thường làm biến chất sao (hóa hung)
-        - Số 5: Thường bị loại bỏ khỏi chuỗi phân tích
+        - Số 0: Thường làm biến chất sao (hóa hung)- tra trong batTinh.js
+        - Số 5: Tăng cường năng lượng của sao ( cộng thêm 1 nếu có 1 số)
 
-     6. **Đánh giá tổng thể**:
-        - Tính toán tỷ lệ Cát/Hung
-        - Đánh giá mức năng lượng tổng hợp
-        - Xác định các tổ hợp đặc biệt có ảnh hưởng mạnh
+     6. **Đánh giá**:
+        - đánh giá dựa vào từng case cụ thể theo tool
+ 
 
      **Ứng dụng theo loại phân tích:**
 
      1. **Phân tích Số Điện Thoại**:
-        - Đánh giá theo cặp số và mức độ tương thích với mục đích sử dụng
-        - Xác định phù hợp với ngành nghề, công việc, hoặc tài lộc
-        - Đề xuất giải pháp cải thiện (nếu cần)
-
-     2. **Phân tích CCCD**:
-        - Tập trung vào 6 số cuối (phần số ngẫu nhiên)
-        - Xác định ảnh hưởng đến vận mệnh và các khía cạnh cuộc sống
-        - Đưa ra lời khuyên về việc nên/không nên làm với CCCD này
-
-     3. **Phân tích STK Ngân Hàng**:
-        - Đặc biệt chú trọng đến 4 số cuối
-        - Đánh giá mức độ phù hợp với mục đích tài chính
-        - Phân tích theo các mục đích: kinh doanh, tiết kiệm, đầu tư, cá nhân
-
-     4. **Phân tích Mật Khẩu**:
-        - Phân tích các cặp số trong mật khẩu
-        - Đánh giá tác động của các con số đến bảo mật và năng lượng
-        - Đề xuất điều chỉnh để cải thiện cả bảo mật và phong thủy
-
-     **Công cụ (Tools):**
-     - `PhoneAnalyzer`: Phân tích số điện thoại theo nguyên lý Bát Cục Linh Số
-     - `CCCDAnalyzer`: Phân tích số CCCD theo quy tắc phong thủy
-     - `BankAccountAnalyzer`: Phân tích STK ngân hàng
-     - `PasswordAnalyzer`: Đánh giá mật khẩu
-     - `RecommendationEngine`: Đưa ra lời khuyên dựa trên kết quả phân tích
+        1.1. loại bỏ các khoảng trắng hoặc kí tự đặc biệt, loại bỏ các số format như số 0 ở đâu của số điện thoại ( hoặc số nhà mạng nếu có yêu cầu)
+        - Tách thành các cặp sao ( bộ 2 số hoặc các bộ số dài hơn nếu có số 0,5)
+        - Phân tích các vị trí trọng yếu: 3 số cuối hoặc sao cuối ( nếu sao cuối có bao gồm số 0,5)
+        - Các vị trí quan trọng 1,3,5 từ bên phải, đọc ý nghĩa theo meaning 
+        - Phân tích các biến hóa dựa vào các cặp sao liền kề nhau ( ý nghĩa tại combination.js )
+        - tạo ra 1 endpoint để lấy thông tin của phân tích này, hãy tham khảo ./backup/services/analysisServices.js để đảm bảo có thể lấy hết các thông tin này ra phân tích.
+        1.2 Đưa vào LLM để tổng hợp và phân tích, hãy đảm bảo convert toàn bộ các thông tin và cách phân tích từ .backup/service/geminiService.js để vào trong python
 
 3. **Payment Agent**
    - **Mục đích**: Xử lý các giao dịch thanh toán
@@ -246,109 +240,6 @@ MCP sẽ được triển khai để quản lý tập trung các prompt, cấu h
 - Phân tích và đề xuất cải thiện mật khẩu
 - Giải thích ý nghĩa và đưa ra lời khuyên
 
-**Nguyên lý phân tích Bát Cục Linh Số**:
-
-Bát Cục Linh Số là phương pháp phân tích năng lượng của các con số dựa trên 8 loại sao chính - 4 cát tinh và 4 hung tinh:
-
-**4 Cát Tinh (Sao Tốt):**
-1. **Sinh Khí**: 
-   - Cặp số: 14, 41, 67, 76, 39, 93, 28, 82
-   - Đặc tính: Vui vẻ, quý nhân, dẫn đạo lực
-   - Lĩnh vực phù hợp: Phát triển, tăng trưởng, quý nhân giúp đỡ
-   - Mức năng lượng: 1-4 (tùy cặp số)
-
-2. **Thiên Y**: 
-   - Cặp số: 13, 31, 68, 86, 49, 94, 27, 72
-   - Đặc tính: Tiền tài, tình cảm, hồi báo
-   - Lĩnh vực phù hợp: Tài chính, tình cảm, sức khỏe
-   - Mức năng lượng: 1-4 (tùy cặp số)
-
-3. **Diên Niên**: 
-   - Cặp số: 19, 91, 78, 87, 34, 43, 26, 62
-   - Đặc tính: Năng lực chuyên nghiệp, công việc
-   - Lĩnh vực phù hợp: Sự nghiệp, lãnh đạo, phát triển chuyên môn
-   - Mức năng lượng: 1-4 (tùy cặp số)
-
-4. **Phục Vị**: 
-   - Cặp số: 11, 22, 33, 44, 66, 77, 88, 99
-   - Đặc tính: Chịu đựng, khó thay đổi
-   - Đặc điểm: Theo hung thì hung, theo cát thì cát (có thể tốt hoặc xấu tùy tổ hợp)
-   - Mức năng lượng: 1-4 (tùy cặp số)
-
-**4 Hung Tinh (Sao Xấu):**
-1. **Họa Hại**: 
-   - Cặp số: 17, 71, 89, 98, 46, 64, 23, 32
-   - Đặc tính: Khẩu tài, chi tiêu lớn, thị phi
-   - Cảnh báo: Cãi vã, kiện tụng, phá tài, bệnh tật
-   - Mức năng lượng: 1-4 (tùy cặp số)
-
-2. **Lục Sát**: 
-   - Cặp số: 16, 61, 47, 74, 38, 83, 92, 29
-   - Đặc tính: Giao tế, phục vụ, cửa hàng, nữ nhân
-   - Cảnh báo: Tình cảm không ổn định, u buồn, trầm cảm
-   - Mức năng lượng: 1-4 (tùy cặp số)
-
-3. **Ngũ Quỷ**: 
-   - Cặp số: 18, 81, 79, 97, 36, 63, 24, 42
-   - Đặc tính: Trí óc, biến động, không ổn định, tư duy
-   - Cảnh báo: Thay đổi liên tục, tiểu nhân, khó quản lý tài chính
-   - Mức năng lượng: 1-4 (tùy cặp số)
-
-4. **Tuyệt Mệnh**: 
-   - Cặp số: 12, 21, 69, 96, 84, 48, 73, 37
-   - Đặc tính: Dốc sức, đầu tư, hành động, phá tài
-   - Cảnh báo: Dễ phá tài, gặp tai nạn, sức khỏe không tốt
-   - Mức năng lượng: 1-4 (tùy cặp số)
-
-**Quy tắc phân tích chính:**
-
-1.0 **Chuẩn hóa và Lựa chọn các số ngẫu nhiên**: loại bỏ các khoảng trắng hoặc kí tự đặc biệt, loại bỏ các số format như số 0 ở đâu của số điện thoại ( hoặc số nhà mạng nếu có yêu cầu), loại bỏ các số vùng miền giới tính trong căn cước công dân...
-1.1 **Tách thành cặp số**: Số điện thoại/CCCD/STK được tách thành các cặp số liền kề
-   - Ví dụ: 0123456789 →  12, 23, 34, 45, 56, 67, 78, 89
-
-2. **Xác định thuộc tính sao**: Mỗi cặp số tương ứng với một sao (cát hoặc hung)
-
-3. **Đánh giá mức năng lượng**: Mỗi cặp số có mức năng lượng từ 1-4 (1: yếu, 4: mạnh)
-
-4. **Phân tích tổ hợp sao**: 
-   - tra tromg constant/batTinh.js
-   - tra tổ hợp trong combination.js
-
-5. **Xử lý số 0 và 5**: 
-   - Số 0: Thường làm biến chất sao (hóa hung)- tra trong batTinh.js
-   - Số 5: Tăng cường năng lượng của sao ( cộng thêm 1 nếu có 1 số)
-
-6. **Đánh giá**:
-   - đánh giá dựa vào từng case cụ thể theo tool
- 
-
-**Ứng dụng theo loại phân tích:**
-
-1. **Phân tích Số Điện Thoại**:
-   1.1. loại bỏ các khoảng trắng hoặc kí tự đặc biệt, loại bỏ các số format như số 0 ở đâu của số điện thoại ( hoặc số nhà mạng nếu có yêu cầu)
-   - Tách thành các cặp sao ( bộ 2 số hoặc các bộ số dài hơn nếu có số 0,5)
-   - Phân tích các vị trí trọng yếu: 3 số cuối hoặc sao cuối ( nếu sao cuối có bao gồm số 0,5)
-   - Các vị trí quan trọng 1,3,5 từ bên phải, đọc ý nghĩa theo meaning 
-   - Phân tích các biến hóa dựa vào các cặp sao liền kề nhau ( ý nghĩa tại combination.js )
-   - tạo ra 1 endpoint để lấy thông tin của phân tích này, hãy tham khảo ./backup/services/analysisServices.js để đảm bảo có thể lấy hết các thông tin này ra phân tích.
-   1.2 Đưa vào LLM để tổng hợp và phân tích, hãy đảm bảo convert toàn bộ các thông tin và cách phân tích từ .backup/service/geminiService.js để vào trong python
-
-
-2. **Phân tích CCCD**:
-   - Tập trung vào 6 số cuối (phần số ngẫu nhiên)
-   - Xác định ảnh hưởng đến vận mệnh và các khía cạnh cuộc sống
-   - Đưa ra lời khuyên về việc nên/không nên làm với CCCD này
-
-3. **Phân tích STK Ngân Hàng**:
-   - Đặc biệt chú trọng đến 4 số cuối
-   - Đánh giá mức độ phù hợp với mục đích tài chính
-   - Phân tích theo các mục đích: kinh doanh, tiết kiệm, đầu tư, cá nhân
-
-4. **Phân tích Mật Khẩu**:
-   - Phân tích các cặp số trong mật khẩu
-   - Đánh giá tác động của các con số đến bảo mật và năng lượng
-   - Đề xuất điều chỉnh để cải thiện cả bảo mật và phong thủy
-
 **Công cụ (Tools):**
 - `PhoneAnalyzer`: Phân tích số điện thoại theo nguyên lý Bát Cục Linh Số
 - `CCCDAnalyzer`: Phân tích số CCCD theo quy tắc phong thủy
@@ -384,65 +275,92 @@ Bát Cục Linh Số là phương pháp phân tích năng lượng của các co
 - `HistoryTracker`: Theo dõi lịch sử
 - `PreferenceManager`: Quản lý tùy chọn
 
-## API Gateway
+## API Tách Biệt
 
-API Gateway sẽ đóng vai trò trung gian giữa frontend và hệ thống agents:
+### 1. Node.js API (Legacy)
 
-1. **Authentication và Authorization**:
-   - Xác thực người dùng
-   - Phân quyền truy cập
-   - Quản lý JWT
-
-2. **Quota Management**:
-   - Kiểm tra hạn mức người dùng
-   - Theo dõi sử dụng API
-   - Giới hạn tốc độ truy cập
-
-3. **Request Routing**:
-   - Chuyển hướng requests đến Python ADK service
-   - Xử lý endpoints phiên bản cũ (v1)
-   - Cung cấp endpoints mới (v2) cho ADK
-
-4. **Response Streaming**:
-   - Hỗ trợ Server-Sent Events (SSE)
-   - Streaming phản hồi từ agents
-
-5. **Error Handling**:
-   - Xử lý lỗi thống nhất
-   - Logging và monitoring
-
-## Endpoint API v2
+API Node.js hiện tại sẽ được duy trì trong giai đoạn chuyển tiếp, nhưng sẽ bị loại bỏ trong phiên bản tiếp theo. API này bao gồm:
 
 ```
-/api/v2/chat
+/api/v1/analysis
+  POST: Phân tích số điện thoại
+  
+/api/v1/user
+  GET: Lấy thông tin người dùng
+  POST: Đăng ký
+  PUT: Cập nhật thông tin
+  
+/api/v1/auth
+  POST: Đăng nhập
+  POST /logout: Đăng xuất
+  
+/api/v1/payment
+  GET: Kiểm tra trạng thái
+  POST: Xử lý thanh toán
+```
+
+### 2. Python ADK API (Mới)
+
+API Python ADK mới sẽ được xây dựng độc lập và frontend sẽ gọi trực tiếp đến các endpoint này để tương tác với chatbot:
+
+```
+/adk/chat
   POST: Gửi tin nhắn tới hệ thống agents
   GET: Nhận phản hồi từ agents (Streaming)
 
-/api/v2/upload
+/adk/upload
   POST: Upload file (hình ảnh, PDF, âm thanh)
 
-/api/v2/user
+/adk/user
   GET: Lấy thông tin người dùng
   POST: Tạo tài khoản mới
   PUT: Cập nhật thông tin
 
-/api/v2/payment
+/adk/payment
   GET: Kiểm tra trạng thái thanh toán
   POST: Khởi tạo thanh toán
 
-/api/v2/apikeys
+/adk/apikeys
   GET: Lấy danh sách API keys
   POST: Tạo API key mới
   DELETE: Xóa API key
 
-/api/v2/analysis
+/adk/analysis
   GET: Lấy lịch sử phân tích
-  POST: Yêu cầu phân tích mới
+  POST: Yêu cầu phân tích mới phong thủy số
 ```
+
+### 3. Streaming API
+
+Python ADK API sẽ hỗ trợ streaming responses thông qua SSE (Server-Sent Events) để cung cấp trải nghiệm chat mượt mà:
+
+```
+/adk/stream
+  GET: Kết nối streaming cho phản hồi real-time
+```
+
+## Kế hoạch chuyển đổi
+
+Quá trình chuyển đổi từ Node.js API sang Python ADK API sẽ diễn ra theo các giai đoạn:
+
+### Giai đoạn 1: Phát triển song song
+- Phát triển Python ADK API song song với Node.js API
+- Frontend tiếp tục sử dụng Node.js API
+- Đảm bảo tương thích ngược cho dữ liệu
+
+### Giai đoạn 2: Chuyển đổi từng phần
+- Frontend bắt đầu sử dụng một số endpoint của Python ADK API
+- Triển khai tính năng mới chỉ trên Python ADK API
+- Kiểm thử A/B để đảm bảo hiệu suất
+
+### Giai đoạn 3: Chuyển đổi hoàn toàn
+- Frontend chuyển hoàn toàn sang Python ADK API
+- Node.js API chỉ phục vụ các khách hàng cũ
+- Duy trì API cũ trong thời gian giới hạn
 
 ## Session Management
 
-Hệ thống sẽ triển khai hai loại session service:
+Hệ thống sẽ triển khai hai loại session service trong Python ADK:
 
 1. **InMemorySessionService**: Sử dụng cho môi trường phát triển
    - Lưu trữ session in-memory
@@ -555,7 +473,7 @@ Lời khuyên: Nên sử dụng số tài khoản này cho mục đích tiết k
 - **Speech-to-Text API**: Chuyển đổi giọng nói sang văn bản
 - **SSE (Server-Sent Events)**: Streaming phản hồi
 
-### Backend Node.js
+### Backend Node.js (Legacy)
 
 - **Express.js**: Web framework
 - **MongoDB**: Database
@@ -594,15 +512,15 @@ Lời khuyên: Nên sử dụng số tài khoản này cho mục đích tiết k
 ### Giai đoạn 1: Setup môi trường (Tuần 1-2)
 
 - Cài đặt Google ADK
-- Tạo các service cơ bản
+- Tạo Python ADK API cơ bản
 - Triển khai MCP server
 - Thiết lập CI/CD pipeline
 
-### Giai đoạn 2: Phát triển Root Agent (Tuần 3-4)
+### Giai đoạn 2: Phát triển Root Agent và API (Tuần 3-4)
 
 - Triển khai Root Agent
-- Tích hợp với API Gateway
-- Xây dựng cơ chế routing
+- Tạo các endpoint cơ bản của Python ADK API
+- Tích hợp SSE cho streaming
 - Thiết lập conversation management
 
 ### Giai đoạn 3: Phát triển BatCucLinhSo Agent (Tuần 5-7)
@@ -619,11 +537,11 @@ Lời khuyên: Nên sử dụng số tài khoản này cho mục đích tiết k
 - Tích hợp với Root Agent
 - Kiểm thử end-to-end
 
-### Giai đoạn 5: Testing và Optimization (Tuần 11-12)
+### Giai đoạn 5: Tích hợp Frontend và Testing (Tuần 11-12)
 
+- Sửa đổi Frontend để gọi trực tiếp đến Python ADK API
 - End-to-end testing
 - Performance optimization
-- Security testing
 - Beta deployment
 
 ## Đánh giá và KPIs
@@ -654,11 +572,13 @@ Lời khuyên: Nên sử dụng số tài khoản này cho mục đích tiết k
 | Rủi ro | Mức độ | Tác động | Biện pháp giảm thiểu |
 |--------|--------|----------|----------------------|
 | Độ chính xác của Agent | Cao | Cao | Extensive testing, Human-in-the-loop evaluation |
-| Tốc độ phản hồi | Trung bình | Cao | Caching, Async processing, Response streaming |
-| Tích hợp giữa Node.js và Python | Cao | Trung bình | API contract testing, Monitoring |
+| Tốc độ phản hồi API Python | Trung bình | Cao | Caching, Async processing, Response streaming |
+| Chuyển đổi từ Node.js sang Python | Cao | Trung bình | Migration tools, Phased approach, Compatibility layer |
 | Bảo mật dữ liệu | Cao | Cao | Encryption, Access control, Audit trails |
-| Chi phí vận hành | Trung bình | Trung bình | Resource optimization, Caching, Rate limiting |
+| Chi phí vận hành 2 API song song | Cao | Trung bình | Resource optimization, Caching, Rate limiting |
 
 ## Kết luận
 
-Kiến trúc đa tác tử (multi-agent) sử dụng Google ADK sẽ nâng cao đáng kể khả năng của ứng dụng Phong Thủy Số, mang lại trải nghiệm người dùng tốt hơn, và tạo nền tảng cho việc mở rộng chức năng trong tương lai. Việc tích hợp A2A Protocol và MCP cung cấp một kiến trúc linh hoạt và dễ bảo trì, trong khi API Gateway đảm bảo kết nối mượt mà giữa frontend và hệ thống backend.
+Kiến trúc mới với 2 bộ API độc lập (Node.js và Python ADK) cho phép quá trình chuyển đổi diễn ra mượt mà và giảm thiểu rủi ro. Frontend sẽ dần chuyển từ việc gọi Node.js API sang gọi trực tiếp Python ADK API, trong khi vẫn đảm bảo trải nghiệm người dùng liền mạch.
+
+Kiến trúc đa tác tử (multi-agent) sử dụng Google ADK sẽ nâng cao đáng kể khả năng của ứng dụng Phong Thủy Số, mang lại trải nghiệm người dùng tốt hơn, và tạo nền tảng cho việc mở rộng chức năng trong tương lai. Việc tích hợp A2A Protocol và MCP cung cấp một kiến trúc linh hoạt và dễ bảo trì, phù hợp với chiến lược phát triển dài hạn của hệ thống.

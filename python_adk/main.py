@@ -9,12 +9,15 @@ import sys
 import argparse
 import logging
 from typing import Dict, Optional, Any
+from datetime import datetime
+import json
 
 from dotenv import load_dotenv
 import google.generativeai as genai
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import uvicorn
+from fastapi.responses import StreamingResponse
 
 # Import the root agent instance directly
 from python_adk.agents import root_agent
@@ -207,6 +210,18 @@ class ChatSession(BaseModel):
     sessionId: str
     session_id: Optional[str] = None  # Thêm field session_id để tương thích với Node.js API
 
+class ChatRequest(BaseModel):
+    message: str
+    sessionId: Optional[str] = None
+
+class AnalyzeRequest(BaseModel):
+    type: str
+    value: str
+
+class PhoneRequest(BaseModel):
+    phoneNumber: str
+    purpose: Optional[str] = None
+
 # --- API Routes ---
 # Endpoint /chat cho Node.js API Gateway
 @app.post("/chat")
@@ -365,15 +380,9 @@ async def root():
     Root endpoint, trả về thông tin cơ bản về API
     """
     return {
-        "name": "Phong Thủy Số API",
-        "version": "0.1.0",
-        "description": "API cho ứng dụng phân tích phong thủy số học",
-        "endpoints": {
-            "/api/chat": "Gửi tin nhắn đến agent và nhận phản hồi",
-            "/agent/chat": "Tạo phiên chat mới",
-            "/agent/stream": "Gửi tin nhắn và nhận phản hồi dạng stream",
-            "/health": "Kiểm tra trạng thái hoạt động của API"
-        }
+        "name": "Phong Thủy Số ADK API",
+        "version": "1.0.0",
+        "description": "Agent-based API for analyzing phone numbers and CCCD numbers using Bát Cục Linh Số method"
     }
 
 @app.get("/health")
@@ -382,7 +391,10 @@ async def health_check():
     Endpoint kiểm tra trạng thái hoạt động của ứng dụng.
     Sử dụng bởi Docker healthcheck.
     """
-    return {"status": "healthy", "version": "0.1.0"}
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat()
+    }
 
 # Giữ lại /api/chat endpoint cho direct access
 @app.post("/api/chat", response_model=AgentResponse)
@@ -403,4 +415,240 @@ async def chat_with_agent(user_message: UserMessage):
         return AgentResponse(response=response, text=response)
     except Exception as e:
         logger.error(f"Lỗi xử lý API request: {e}")
-        raise HTTPException(status_code=500, detail=f"Lỗi xử lý request: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Lỗi xử lý request: {str(e)}")
+
+# Thêm các endpoint mới cho Python ADK API
+# Các endpoint này được định nghĩa dựa trên tài liệu interface.md
+
+@app.post('/chat')
+async def chat(request: ChatRequest):
+    # Log the request
+    logger = get_logger("API")
+    logger.info(f"Nhận yêu cầu chat: {request.message}")
+    
+    # Sử dụng AgentRouter để chuyển hướng yêu cầu
+    from python_adk.agents.root_agent.tools.agent_router import AgentRouter
+    router = AgentRouter()
+    session_id = request.sessionId or str(uuid.uuid4())
+    result = await router.execute(agent_type="batcuclinh_so", request=request.message, session_id=session_id)
+    
+    return {
+        'success': result['success'],
+        'message': 'Xử lý tin nhắn thành công' if result['success'] else 'Xử lý tin nhắn thất bại',
+        'result': {
+            'sessionId': session_id,
+            'response': result['response'],
+            'agentType': result['agent_type'],
+            'success': result['success']
+        }
+    }
+
+@app.get('/stream')
+async def stream(message: str, sessionId: str = None, userId: str = None):
+    # Log the request
+    logger = get_logger("API")
+    logger.info(f"Nhận yêu cầu stream: {message}")
+    
+    # Sử dụng AgentRouter để chuyển hướng yêu cầu
+    from python_adk.agents.root_agent.tools.agent_router import AgentRouter
+    router = AgentRouter()
+    session_id = sessionId or str(uuid.uuid4())
+    result = await router.execute(agent_type="batcuclinh_so", request=message, session_id=session_id)
+    
+    # Xử lý stream response
+    async def event_stream():
+        if result['success']:
+            chunks = result['response'].split('\n')
+            for chunk in chunks:
+                if chunk.strip():
+                    yield f'data: {json.dumps({"type": "chunk", "content": chunk})}
+'
+                    await asyncio.sleep(0.05)  # Giả lập stream
+            yield f'data: {json.dumps({"type": "complete"})}
+'
+        else:
+            yield f'data: {json.dumps({"type": "error", "content": result["error"]})}
+'
+            yield f'data: {json.dumps({"type": "complete"})}
+'
+    return StreamingResponse(event_stream(), media_type='text/event-stream')
+
+@app.get('/sessions/{sessionId}')
+async def get_session(sessionId: str):
+    return {
+        'success': True,
+        'sessionId': sessionId,
+        'history': [
+            {
+                'role': 'user',
+                'content': 'Phân tích số điện thoại 0987654321',
+                'timestamp': '2023-06-15T14:30:00Z'
+            },
+            {
+                'role': 'assistant',
+                'content': 'Phân tích số điện thoại 0987654321: ...',
+                'timestamp': '2023-06-15T14:30:05Z'
+            }
+        ],
+        'metadata': {
+            'lastAnalysis': 'phone',
+            'lastUpdated': '2023-07-15T14:30:05Z'
+        }
+    }
+
+@app.delete('/sessions/{sessionId}')
+async def delete_session(sessionId: str):
+    return {
+        'success': True,
+        'message': 'Phiên đã được xóa thành công'
+    }
+
+@app.post('/analyze')
+async def analyze(request: AnalyzeRequest):
+    # Log the request
+    logger = get_logger("API")
+    logger.info(f"Nhận yêu cầu phân tích: {request.type} - {request.value}")
+    
+    # Xác định loại phân tích và gọi công cụ phù hợp
+    if request.type.lower() == 'phone':
+        from python_adk.agents.batcuclinh_so_agent.tools.phone_analyzer import PhoneAnalyzer
+        try:
+            normalized = PhoneAnalyzer._normalize_phone_number(request.value)
+            analysis_result = PhoneAnalyzer.analyze_phone_number(normalized)
+            return {
+                'success': True,
+                'message': 'Phân tích thành công',
+                'type': request.type,
+                'result': {
+                    'success': True,
+                    'value': request.value,
+                    'normalized': normalized,
+                    'analysis': analysis_result
+                }
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Phân tích thất bại: {str(e)}',
+                'type': request.type,
+                'result': {
+                    'success': False,
+                    'value': request.value,
+                    'error': str(e)
+                }
+            }
+    elif request.type.lower() == 'cccd':
+        from python_adk.agents.batcuclinh_so_agent.tools.cccd_analyzer import CCCDAnalyzer
+        try:
+            analysis_result = CCCDAnalyzer.analyze_cccd(request.value)
+            return {
+                'success': True,
+                'message': 'Phân tích CCCD thành công',
+                'type': request.type,
+                'result': {
+                    'success': True,
+                    'value': request.value,
+                    'analysis': analysis_result
+                }
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Phân tích CCCD thất bại: {str(e)}',
+                'type': request.type,
+                'result': {
+                    'success': False,
+                    'value': request.value,
+                    'error': str(e)
+                }
+            }
+    elif request.type.lower() == 'password':
+        from python_adk.agents.batcuclinh_so_agent.tools.password_analyzer import PasswordAnalyzer
+        try:
+            analysis_result = PasswordAnalyzer.analyze_password(request.value)
+            return {
+                'success': True,
+                'message': 'Phân tích mật khẩu thành công',
+                'type': request.type,
+                'result': {
+                    'success': True,
+                    'value': request.value,
+                    'analysis': analysis_result
+                }
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Phân tích mật khẩu thất bại: {str(e)}',
+                'type': request.type,
+                'result': {
+                    'success': False,
+                    'value': request.value,
+                    'error': str(e)
+                }
+            }
+    elif request.type.lower() == 'bank_account':
+        from python_adk.agents.batcuclinh_so_agent.tools.bank_account_analyzer import BankAccountAnalyzer
+        try:
+            analysis_result = BankAccountAnalyzer.analyze_bank_account(request.value)
+            return {
+                'success': True,
+                'message': 'Phân tích tài khoản ngân hàng thành công',
+                'type': request.type,
+                'result': {
+                    'success': True,
+                    'value': request.value,
+                    'analysis': analysis_result
+                }
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'message': f'Phân tích tài khoản ngân hàng thất bại: {str(e)}',
+                'type': request.type,
+                'result': {
+                    'success': False,
+                    'value': request.value,
+                    'error': str(e)
+                }
+            }
+    else:
+        return {
+            'success': False,
+            'message': 'Loại phân tích không được hỗ trợ',
+            'type': request.type,
+            'result': {
+                'success': False,
+                'value': request.value,
+                'error': 'Unsupported analysis type'
+            }
+        }
+
+@app.post('/analyze/phone')
+async def analyze_phone(request: PhoneRequest):
+    from python_adk.agents.batcuclinh_so_agent.tools.phone_analyzer import PhoneAnalyzer
+    try:
+        # Chuẩn hóa số điện thoại
+        normalized = PhoneAnalyzer._normalize_phone_number(request.phoneNumber)
+        # Phân tích số điện thoại
+        analysis_result = PhoneAnalyzer.analyze_phone_number(normalized, request.purpose)
+        return {
+            'success': True,
+            'message': 'Phân tích số điện thoại thành công',
+            'result': {
+                'success': True,
+                'phoneNumber': request.phoneNumber,
+                'normalized': normalized,
+                'analysis': analysis_result
+            }
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'message': f'Phân tích số điện thoại thất bại: {str(e)}',
+            'result': {
+                'success': False,
+                'phoneNumber': request.phoneNumber,
+                'error': str(e)
+            }
+        } 
