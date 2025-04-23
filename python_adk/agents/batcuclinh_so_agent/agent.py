@@ -9,9 +9,8 @@ from typing import Any, Dict, List, Optional, Set, Union
 # Import AgentTool từ google.adk.tools.agent_tool
 from google.adk.tools.agent_tool import AgentTool
 
-# Import agent_tool và agent_tool_registry từ base_agent để sử dụng implement tự tạo
-from python_adk.agents.base_agent import agent_tool, agent_tool_registry, annotate_type
-from python_adk.agents.root_agent.agent import AgentType
+# Import agent_tool và agent_tool_registry từ root_agent để sử dụng implement mới
+from python_adk.agents.root_agent.agent import agent_tool, agent_tool_registry, annotate_type, AgentType
 from python_adk.prompt import get_agent_prompt
 from python_adk.shared_libraries.logger import get_logger
 from python_adk.shared_libraries.models import (

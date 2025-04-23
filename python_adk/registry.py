@@ -8,7 +8,7 @@ Sử dụng Singleton pattern để đảm bảo chỉ có một registry đư�
 from typing import Dict, Optional, Type
 
 from python_adk.agents.base_agent import BaseAgent
-from python_adk.agents.root_agent.agent import AgentType, RootAgent
+from python_adk.agents.root_agent.agent import AgentType, RootAgent, root_agent
 from python_adk.agents.batcuclinh_so_agent import BatCucLinhSoAgent
 from python_adk.agents.payment_agent import PaymentAgent
 from python_adk.agents.user_agent import UserAgent
@@ -43,7 +43,9 @@ class AgentRegistry:
     
     def _register_default_agents(self) -> None:
         """Đăng ký các lớp agent mặc định"""
-        self.register_agent_class(AgentType.ROOT, RootAgent)
+        # Sử dụng root_agent đã được tạo thay vì đăng ký lớp
+        self.agent_instances[AgentType.ROOT] = root_agent
+        
         self.register_agent_class(AgentType.BATCUCLINH_SO, BatCucLinhSoAgent)
         self.register_agent_class(AgentType.PAYMENT, PaymentAgent)
         self.register_agent_class(AgentType.USER, UserAgent)
@@ -75,6 +77,10 @@ class AgentRegistry:
         Raises:
             ValueError: Nếu loại agent không được đăng ký
         """
+        # Nếu là RootAgent, trả về instance đã tạo
+        if agent_type == AgentType.ROOT:
+            return root_agent
+            
         # Kiểm tra nếu đã có instance
         if agent_type in self.agent_instances:
             return self.agent_instances[agent_type]
@@ -97,23 +103,22 @@ class AgentRegistry:
         
         self.logger.info(f"Đã khởi tạo agent: {agent_type}")
         
-        # Đặc biệt cho RootAgent, đăng ký các agent khác
-        if agent_type == AgentType.ROOT and isinstance(agent, RootAgent):
-            for other_type in AgentType:
-                if other_type != AgentType.ROOT:
-                    try:
-                        other_agent = self.get_agent(other_type)
-                        agent.register_agent(other_type, other_agent)
-                    except ValueError:
-                        # Bỏ qua nếu agent chưa được đăng ký
-                        pass
+        # Đăng ký agent với RootAgent
+        root_agent.register_agent(agent_type, agent)
         
         return agent
     
     def clear_instances(self) -> None:
-        """Xóa tất cả các instance đã tạo"""
+        """Xóa tất cả các instance đã tạo ngoại trừ RootAgent"""
+        # Giữ lại RootAgent
+        root = self.agent_instances.get(AgentType.ROOT)
         self.agent_instances.clear()
-        self.logger.info("Đã xóa tất cả các instance agent")
+        
+        # Khôi phục RootAgent
+        if root:
+            self.agent_instances[AgentType.ROOT] = root
+            
+        self.logger.info("Đã xóa tất cả các instance agent (ngoại trừ RootAgent)")
 
 
 # Singleton instance để sử dụng toàn cục

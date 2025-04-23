@@ -2,44 +2,25 @@
 Base Agent Module
 
 Module cung cấp lớp cơ sở cho tất cả các agent trong hệ thống.
+Lớp này dựa trên RootAgent nhưng chỉ chứa các phương thức cần thiết cho các agent khác.
 """
 
 import abc
 from typing import Any, Dict, List, Optional, Set, Type, Union
 
+# Tái sử dụng các hàm tiện ích từ RootAgent để đảm bảo tính nhất quán
+from python_adk.agents.root_agent.agent import agent_tool_registry, agent_tool, annotate_type
+
 # Import Agent từ google.adk.agents
 from google.adk.agents import Agent as GeminiAgent
-
-# Import AgentTool từ google.adk.tools.agent_tool
-from google.adk.tools.agent_tool import AgentTool
-
-# Định nghĩa agent_tool để tương thích với code hiện tại
-# Sử dụng mẫu registry pattern thủ công
-class AgentToolRegistry:
-    _registry = {}
-    
-    @classmethod
-    def register(cls, func):
-        cls._registry[func.__name__] = func
-        return func
-    
-    @classmethod
-    def get_tool(cls, name):
-        return cls._registry.get(name)
-
-agent_tool_registry = AgentToolRegistry()
-agent_tool = agent_tool_registry.register
-
-# Tạo một annotate_type giả để xử lý vấn đề không tìm thấy module
-def annotate_type(f):
-    return f
 
 from python_adk.shared_libraries.logger import get_logger
 
 
 class BaseAgent:
     """
-    Lớp cơ sở cho tất cả các agent trong hệ thống Phong Thủy Số
+    Lớp cơ sở cho tất cả các agent chuyên biệt trong hệ thống Phong Thủy Số.
+    Thừa kế các chức năng từ Root Agent nhưng được đơn giản hóa.
     """
 
     def __init__(self, name: str, model_name: str = "gemini-2.0-flash", instruction: str = None):
@@ -123,7 +104,7 @@ class BaseAgent:
         self.logger.info("Đã xóa lịch sử hội thoại")
     
     @annotate_type
-    def invoke(self, user_message: str) -> str:
+    def process_message(self, user_message: str) -> str:
         """
         Xử lý tin nhắn từ người dùng, sử dụng GeminiAgent thực tế
         
@@ -147,6 +128,12 @@ class BaseAgent:
         self.logger.info(f"Phản hồi: {response}")
         
         return response
+    
+    def invoke(self, user_message: str) -> str:
+        """
+        Cách gọi thay thế cho process_message
+        """
+        return self.process_message(user_message)
     
     def run(self, user_message: str) -> str:
         """
