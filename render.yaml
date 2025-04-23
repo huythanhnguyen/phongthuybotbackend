@@ -71,7 +71,7 @@ services:
     region: singapore
     plan: starter
     buildCommand: pip install -r python_adk/requirements.txt
-    startCommand: cd /opt/render/project/src && uvicorn python_adk.asgi:application --host 0.0.0.0 --port 10000
+    startCommand: cd phongthuybotbackend && gunicorn python_adk.asgi:application --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
     envVars:
       - key: PORT
         value: 10000
@@ -86,10 +86,10 @@ services:
       - key: GOOGLE_API_KEY
         sync: false
       - key: DEFAULT_MODEL
-        value: gemini-pro
+        value: gemini-2.0-flash
       - key: ROOT_AGENT_MODEL
-        value: gemini-pro
+        value: gemini-2.0-flash
       - key: BATCUCLINH_SO_AGENT_MODEL
-        value: gemini-pro
+        value: gemini-2.0-flash
       - key: PYTHONPATH
         value: /opt/render/project/src 
