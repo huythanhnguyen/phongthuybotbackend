@@ -1,71 +1,62 @@
 """
-Conversation Manager Tool - Công cụ quản lý luồng trò chuyện
+Conversation Manager Tool - Công cụ quản lý trò chuyện
 
-Tool này quản lý luồng trò chuyện, lưu trữ lịch sử và cung cấp 
-các chức năng tương tác với lịch sử trò chuyện.
+Tool này hỗ trợ quản lý lịch sử và luồng trò chuyện giữa người dùng và agent.
 """
 
-from typing import Dict, Any, List, Optional
 import time
+import logging
+from typing import Dict, Any, List, Optional, Union
 
 # Google ADK imports
 from google.adk.tools import FunctionTool
 
 
 class ConversationManager(FunctionTool):
-    """Tool quản lý luồng trò chuyện"""
+    """Tool quản lý trò chuyện"""
     
     def __init__(self):
         """Khởi tạo Conversation Manager Tool"""
-        super().__init__(
-            name="conversation_manager",
-            description="Quản lý lịch sử và luồng trò chuyện",
-            parameters=[
-                {
-                    "name": "action",
-                    "type": "string",
-                    "description": "Hành động cần thực hiện: add_message, get_history, clear_history",
-                    "required": True
-                },
-                {
-                    "name": "session_id",
-                    "type": "string",
-                    "description": "ID của phiên trò chuyện",
-                    "required": True
-                },
-                {
-                    "name": "message",
-                    "type": "object",
-                    "description": "Tin nhắn cần thêm vào lịch sử (chỉ cần khi action=add_message)",
-                    "required": False
-                },
-                {
-                    "name": "limit",
-                    "type": "integer",
-                    "description": "Số lượng tin nhắn tối đa trả về (chỉ cần khi action=get_history)",
-                    "required": False
+        # Define the conversation_manager_function
+        def conversation_manager_function(action: str, session_id: str, message: Optional[Dict[str, Any]] = None, limit: Optional[int] = None) -> Dict[str, Any]:
+            """Quản lý lịch sử và luồng trò chuyện
+            
+            Args:
+                action: Hành động cần thực hiện: add_message, get_history, clear_history
+                session_id: ID của phiên trò chuyện
+                message: Tin nhắn cần thêm vào lịch sử (chỉ cần khi action=add_message)
+                limit: Số lượng tin nhắn tối đa trả về (chỉ cần khi action=get_history)
+                
+            Returns:
+                Dict[str, Any]: Kết quả của hành động, bao gồm:
+                    success: Trạng thái thành công
+                    history: Lịch sử trò chuyện (nếu có)
+                    error: Thông báo lỗi nếu có
+            """
+            # Validate action
+            if action not in ["add_message", "get_history", "clear_history"]:
+                return {
+                    "success": False,
+                    "error": f"Hành động không hợp lệ: {action}"
                 }
-            ],
-            returns={
-                "type": "object",
-                "description": "Kết quả của hành động",
-                "properties": {
-                    "success": {
-                        "type": "boolean",
-                        "description": "Trạng thái thành công"
-                    },
-                    "history": {
-                        "type": "array",
-                        "items": {"type": "object"},
-                        "description": "Lịch sử trò chuyện"
-                    },
-                    "error": {
-                        "type": "string",
-                        "description": "Thông báo lỗi nếu có"
-                    }
+                
+            # Validate message for add_message
+            if action == "add_message" and not message:
+                return {
+                    "success": False,
+                    "error": "Thiếu tham số message cho hành động add_message"
                 }
-            }
-        )
+                
+            # Execute the corresponding action
+            if action == "add_message":
+                return self.add_message(session_id, message)
+            elif action == "get_history":
+                return self.get_history(session_id, limit)
+            elif action == "clear_history":
+                return self.clear_history(session_id)
+        
+        # Initialize FunctionTool with the function
+        super().__init__(func=conversation_manager_function)
         
         # Memory lưu trữ lịch sử trò chuyện theo session
         self.conversation_memory = {}

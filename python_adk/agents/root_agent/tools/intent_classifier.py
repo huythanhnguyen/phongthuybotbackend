@@ -26,37 +26,23 @@ class IntentClassifier(FunctionTool):
     
     def __init__(self):
         """Khởi tạo Intent Classifier Tool"""
-        super().__init__(
-            name="intent_classifier",
-            description="Phân tích nội dung tin nhắn để xác định agent phù hợp",
-            parameters=[
-                {
-                    "name": "message",
-                    "type": "string",
-                    "description": "Nội dung tin nhắn cần phân tích",
-                    "required": True
-                }
-            ],
-            returns={
-                "type": "object",
-                "description": "Kết quả phân tích ý định",
-                "properties": {
-                    "agent_type": {
-                        "type": "string",
-                        "description": "Loại agent phù hợp"
-                    },
-                    "confidence": {
-                        "type": "number",
-                        "description": "Độ tin cậy của kết quả phân loại (0-1)"
-                    },
-                    "keywords": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": "Các từ khóa được nhận diện"
-                    }
-                }
-            }
-        )
+        # Define the analyze_intent_function
+        def analyze_intent_function(message: str) -> Dict[str, Any]:
+            """Phân tích nội dung tin nhắn để xác định agent phù hợp
+            
+            Args:
+                message: Nội dung tin nhắn cần phân tích
+                
+            Returns:
+                Dict[str, Any]: Kết quả phân tích ý định, bao gồm:
+                    agent_type: Loại agent phù hợp
+                    confidence: Độ tin cậy của kết quả phân loại (0-1)
+                    keywords: Các từ khóa được nhận diện
+            """
+            return self.analyze_intent(message)
+        
+        # Initialize FunctionTool with the function
+        super().__init__(func=analyze_intent_function)
         
         # Từ khóa cho BatCucLinhSoAgent
         self.batcuclinh_so_keywords = [

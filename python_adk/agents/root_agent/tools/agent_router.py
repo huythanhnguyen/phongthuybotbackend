@@ -21,58 +21,39 @@ class AgentRouter(FunctionTool):
     
     def __init__(self):
         """Khởi tạo Agent Router Tool"""
-        super().__init__(
-            name="agent_router",
-            description="Chuyển hướng yêu cầu đến agent phù hợp",
-            parameters=[
-                {
-                    "name": "agent_type",
-                    "type": "string",
-                    "description": "Loại agent cần chuyển hướng đến",
-                    "required": True
-                },
-                {
-                    "name": "request",
-                    "type": "string",
-                    "description": "Nội dung yêu cầu cần chuyển hướng",
-                    "required": True
-                },
-                {
-                    "name": "session_id",
-                    "type": "string",
-                    "description": "ID của phiên trò chuyện",
-                    "required": True
-                },
-                {
-                    "name": "context",
-                    "type": "object",
-                    "description": "Context của cuộc trò chuyện",
-                    "required": False
+        # Define the route_to_agent_function
+        def route_to_agent_function(agent_type: str, request: str, session_id: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+            """Chuyển hướng yêu cầu đến agent phù hợp
+            
+            Args:
+                agent_type: Loại agent cần chuyển hướng đến
+                request: Nội dung yêu cầu cần chuyển hướng
+                session_id: ID của phiên trò chuyện
+                context: Context của cuộc trò chuyện
+                
+            Returns:
+                Dict[str, Any]: Kết quả chuyển hướng yêu cầu, bao gồm:
+                    success: Trạng thái thành công
+                    agent_type: Loại agent đã chuyển hướng đến
+                    response: Phản hồi từ agent (nếu có)
+                    error: Thông báo lỗi nếu có
+            """
+            # Validate agent_type
+            try:
+                agent_type_enum = AgentType(agent_type)
+            except ValueError:
+                return {
+                    "success": False,
+                    "agent_type": agent_type,
+                    "response": f"Loại agent không hợp lệ: {agent_type}",
+                    "error": f"Invalid agent type: {agent_type}"
                 }
-            ],
-            returns={
-                "type": "object",
-                "description": "Kết quả chuyển hướng yêu cầu",
-                "properties": {
-                    "success": {
-                        "type": "boolean",
-                        "description": "Trạng thái thành công"
-                    },
-                    "agent_type": {
-                        "type": "string",
-                        "description": "Loại agent đã chuyển hướng đến"
-                    },
-                    "response": {
-                        "type": "string",
-                        "description": "Phản hồi từ agent (nếu có)"
-                    },
-                    "error": {
-                        "type": "string",
-                        "description": "Thông báo lỗi nếu có"
-                    }
-                }
-            }
-        )
+            
+            # Route the request
+            return self.route_to_agent(agent_type_enum, request, session_id, context)
+        
+        # Initialize FunctionTool with the function
+        super().__init__(func=route_to_agent_function)
         
         # Khởi tạo logger
         self.logger = logging.getLogger("AgentRouter")
