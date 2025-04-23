@@ -9,10 +9,10 @@ from typing import Dict, Any, List, Optional
 import time
 
 # Google ADK imports
-from google.adk.core.tool import Tool
+from google.adk.tools import FunctionTool
 
 
-class ConversationManager(Tool):
+class ConversationManager(FunctionTool):
     """Tool quản lý luồng trò chuyện"""
     
     def __init__(self):

@@ -10,7 +10,7 @@ from typing import Dict, Any, List
 from enum import Enum
 
 # Google ADK imports
-from google.adk.core.tool import Tool
+from google.adk.tools import FunctionTool
 
 
 class AgentType(str, Enum):
@@ -21,7 +21,7 @@ class AgentType(str, Enum):
     UNKNOWN = "unknown"
 
 
-class IntentClassifier(Tool):
+class IntentClassifier(FunctionTool):
     """Tool phân loại ý định người dùng"""
     
     def __init__(self):

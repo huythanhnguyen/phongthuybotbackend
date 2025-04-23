@@ -6,8 +6,8 @@ Triển khai BatCucLinhSoAgent - Agent phân tích phong thủy số học.
 
 from typing import Any, Dict, List, Optional, Set, Union
 
-# Import AgentTool từ google.adk.tools.agent_tool
-from google.adk.tools.agent_tool import AgentTool
+# Import AgentTool từ google.adk.tools
+from google.adk.tools import AgentTool
 
 # Import agent_tool và agent_tool_registry từ root_agent để sử dụng implement mới
 from python_adk.agents.root_agent.agent import agent_tool, agent_tool_registry, annotate_type, AgentType

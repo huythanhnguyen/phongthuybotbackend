@@ -10,13 +10,13 @@ from typing import Dict, Any, List, Optional
 from enum import Enum
 
 # Google ADK imports
-from google.adk.core.tool import Tool
+from google.adk.tools import FunctionTool
 
 # Local imports
 from python_adk.agents.root_agent.tools.intent_classifier import AgentType
 
 
-class AgentRouter(Tool):
+class AgentRouter(FunctionTool):
     """Tool chuyển hướng yêu cầu đến agent phù hợp"""
     
     def __init__(self):

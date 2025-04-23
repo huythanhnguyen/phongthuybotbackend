@@ -11,10 +11,10 @@ import json
 import logging
 
 # Google ADK imports
-from google.adk.core.tool import Tool
+from google.adk.tools import FunctionTool
 
 
-class ContextTracker(Tool):
+class ContextTracker(FunctionTool):
     """Tool theo dõi ngữ cảnh hội thoại"""
     
     def __init__(self):
