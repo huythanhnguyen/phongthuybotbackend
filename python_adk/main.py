@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+import uvicorn
 
 # Import the root agent instance directly
 from python_adk.agents import root_agent
@@ -160,10 +161,19 @@ def main():
             # Chỉ chạy shell nếu đang trong môi trường tương tác
             run_interactive_shell(model_name=args.model)
         else:
-            # Nếu không phải môi trường tương tác (ví dụ: Render), chỉ khởi tạo và chờ API calls
+            # Nếu không phải môi trường tương tác (ví dụ: Render), chạy FastAPI app
             logger = get_logger("Main")
-            logger.info("Khởi động trong môi trường không tương tác. Chờ API requests...")
-            print("Ứng dụng đã khởi động. Chờ API requests...")
+            logger.info("Khởi động trong môi trường không tương tác. Bắt đầu FastAPI app...")
+            
+            # Lấy port từ biến môi trường hoặc sử dụng port mặc định
+            port = int(os.environ.get("PORT", 10000))
+            
+            # Log thông tin về port
+            logger.info(f"Khởi động FastAPI app trên port {port}")
+            print(f"Ứng dụng khởi động trên port {port}...")
+            
+            # Chạy FastAPI app với Uvicorn
+            uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
         
     except Exception as e:
         logging.error(f"Lỗi khi khởi động ứng dụng: {e}")
