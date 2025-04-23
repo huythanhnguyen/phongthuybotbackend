@@ -290,10 +290,11 @@ async def create_chat_session():
         logger.info(f"Tạo phiên chat mới: {session_id}")
         
         # Return the session ID
-        return ChatSession(sessionId=session_id)
+        return ChatSession(sessionId=session_id, session_id=session_id)
     except Exception as e:
         logger.error(f"Lỗi tạo phiên chat: {e}")
-        raise HTTPException(status_code=500, detail=f"Đã xảy ra lỗi khi xử lý tin nhắn")
+        # Return a JSON response rather than raising an HTTPException
+        return {"error": "Đã xảy ra lỗi khi xử lý tin nhắn", "detail": str(e)}
 
 # Thêm route /agent/stream để tương thích với frontend
 @app.post("/agent/stream")
@@ -304,21 +305,29 @@ async def stream_chat(user_message: UserMessage):
     try:
         # Log the request
         logger = get_logger("API")
-        logger.info(f"Nhận stream request: {user_message.text}")
+        logger.info(f"Nhận stream request: {user_message.message or user_message.text}")
         
         # Kiểm tra session ID
-        if not user_message.sessionId:
-            raise HTTPException(status_code=400, detail="Không có phiên chat. Vui lòng tải lại trang.")
+        if not user_message.sessionId and not user_message.session_id:
+            logger.error("Không có phiên chat trong request")
+            return {"error": "Không có phiên chat. Vui lòng tạo phiên mới."}
+        
+        # Extract message
+        message_text = user_message.message or user_message.text or ""
         
         # Gọi root agent để xử lý tin nhắn
-        message_text = user_message.message or user_message.text or ""
-        response = root_agent.invoke(message_text)
-        
-        # Trả về response dạng JSON
-        return {"text": response, "done": True}
+        try:
+            response = root_agent.invoke(message_text)
+            # Trả về response dạng JSON
+            return {"text": response, "done": True}
+        except Exception as agent_error:
+            logger.error(f"Lỗi khi gọi agent: {agent_error}")
+            return {"error": f"Lỗi khi gọi agent: {str(agent_error)}", "done": True}
+            
     except Exception as e:
         logger.error(f"Lỗi xử lý stream request: {e}")
-        raise HTTPException(status_code=500, detail=f"Đã xảy ra lỗi khi xử lý tin nhắn")
+        # Return a JSON response rather than raising an HTTPException
+        return {"error": "Đã xảy ra lỗi khi xử lý tin nhắn", "detail": str(e)}
 
 # Thêm route /query để tương thích với frontend cũ
 @app.post("/query")

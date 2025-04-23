@@ -75,37 +75,85 @@ class RootAgentService {
 
       // Gửi request đến Python ADK
       console.log(`📤 Gửi yêu cầu đến ADK: ${message.substring(0, 50)}...`);
-      const response = await this.apiClient.post('/chat', requestBody);
-
-      // Kiểm tra kết quả
-      if (!response.data || response.status !== 200) {
-        throw new Error('Không nhận được phản hồi từ ADK');
-      }
-
-      // Lưu phản hồi vào lịch sử
-      sessions[sessionId].history.push({
-        role: 'assistant',
-        content: response.data.response,
-        timestamp: new Date().toISOString(),
-        agentType: response.data.agent_type || 'unknown'
-      });
-
-      return {
-        sessionId,
-        response: response.data.response,
-        agentType: response.data.agent_type || 'unknown',
-        success: response.data.success || true
-      };
-    } catch (error) {
-      console.error('❌ Lỗi khi xử lý tin nhắn:', error);
       
-      // Nếu API chưa chạy, sử dụng phương án dự phòng
-      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-        console.log('⚠️ ADK không khả dụng, sử dụng phương án dự phòng');
+      try {
+        // Thử gọi API với timeout và retry
+        const response = await this.apiClient.post('/chat', requestBody, {
+          timeout: 30000, // Tăng timeout lên 30 giây
+        });
+
+        // Kiểm tra kết quả
+        if (!response.data) {
+          throw new Error('Không nhận được dữ liệu từ ADK');
+        }
+
+        // Lưu phản hồi vào lịch sử
+        const responseContent = response.data.response || response.data.text || 'Không có phản hồi từ hệ thống';
+        sessions[sessionId].history.push({
+          role: 'assistant',
+          content: responseContent,
+          timestamp: new Date().toISOString(),
+          agentType: response.data.agent_type || 'unknown'
+        });
+
+        return {
+          sessionId,
+          response: responseContent,
+          agentType: response.data.agent_type || 'unknown',
+          success: response.data.success !== false
+        };
+      } catch (apiError) {
+        console.error('❌ Lỗi khi gọi API ADK:', apiError.message);
+        
+        // Thử gọi endpoint dự phòng /agent/stream
+        if (apiError.code === 'ECONNREFUSED' || apiError.code === 'ENOTFOUND' || 
+            apiError.response?.status === 500) {
+          console.log('⚠️ Thử kết nối đến endpoint khác: /agent/stream');
+          
+          try {
+            const fallbackResponse = await this.apiClient.post('/agent/stream', {
+              text: message,
+              sessionId: sessionId,
+              userId: userId,
+              metadata
+            });
+            
+            if (fallbackResponse.data && (fallbackResponse.data.text || fallbackResponse.data.response)) {
+              const responseText = fallbackResponse.data.text || fallbackResponse.data.response;
+              
+              // Lưu phản hồi vào lịch sử
+              sessions[sessionId].history.push({
+                role: 'assistant',
+                content: responseText,
+                timestamp: new Date().toISOString(),
+                agentType: 'root' // Mặc định là root agent
+              });
+              
+              return {
+                sessionId,
+                response: responseText,
+                agentType: 'root',
+                success: true
+              };
+            }
+          } catch (fallbackError) {
+            console.error('❌ Lỗi khi thử kết nối dự phòng:', fallbackError.message);
+          }
+        }
+        
+        // Nếu tất cả đều thất bại, dùng phương án dự phòng local
+        console.log('⚠️ ADK không khả dụng, sử dụng phương án dự phòng local');
         return this._fallbackProcessing(message, sessionId);
       }
-      
-      throw error;
+    } catch (error) {
+      console.error('❌ Lỗi nghiêm trọng khi xử lý tin nhắn:', error);
+      return {
+        sessionId,
+        response: "Đã xảy ra lỗi khi xử lý tin nhắn của bạn. Vui lòng thử lại sau.",
+        agentType: "error",
+        success: false,
+        error: error.message
+      };
     }
   }
 
@@ -146,21 +194,26 @@ class RootAgentService {
         timestamp: new Date().toISOString()
       });
 
-      // Chuẩn bị request
-      const requestBody = {
-        message,
-        session_id: sessionId,
-        user_id: userId,
-        metadata,
-        stream: true
-      };
-
       console.log(`📤 Gửi yêu cầu stream đến ADK: ${message.substring(0, 50)}...`);
       
+      let useNonStreamingFallback = false;
+      let streamError = null;
+      
+      // Thử các phương thức khác nhau để lấy phản hồi
       try {
+        // Chuẩn bị request có stream
+        const requestBody = {
+          message,
+          session_id: sessionId,
+          user_id: userId,
+          metadata,
+          stream: true
+        };
+        
         // Gửi request đến Python ADK với stream
         const response = await this.apiClient.post('/chat/stream', requestBody, {
-          responseType: 'stream'
+          responseType: 'stream',
+          timeout: 30000 // Tăng timeout lên 30 giây
         });
 
         // Xử lý response dạng stream
@@ -180,6 +233,9 @@ class RootAgentService {
                 if (data.type === 'chunk') {
                   fullContent += data.content;
                   onChunk(data);
+                } else if (data.type === 'error') {
+                  streamError = new Error(data.error || 'Unknown streaming error');
+                  console.error('Stream error:', data.error);
                 }
               } catch (e) {
                 console.error('Lỗi khi xử lý chunk:', e);
@@ -189,6 +245,12 @@ class RootAgentService {
         });
         
         response.data.on('end', () => {
+          // Kiểm tra nếu có lỗi hoặc không có nội dung
+          if (streamError || !fullContent) {
+            useNonStreamingFallback = true;
+            return;
+          }
+          
           // Lưu phản hồi vào lịch sử
           sessions[sessionId].history.push({
             role: 'assistant',
@@ -201,32 +263,83 @@ class RootAgentService {
         
         response.data.on('error', (err) => {
           console.error('Lỗi stream:', err);
-          onError(err);
+          streamError = err;
+          useNonStreamingFallback = true;
         });
-      } catch (error) {
-        // Nếu API chưa chạy, sử dụng phương án dự phòng
-        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-          console.log('⚠️ ADK không khả dụng, sử dụng phương án dự phòng cho stream');
-          const fallbackResult = await this._fallbackProcessing(message, sessionId);
-          
-          // Giả lập stream bằng cách chia nhỏ phản hồi
-          const chunks = this._splitTextIntoChunks(fallbackResult.response);
-          
-          for (const chunk of chunks) {
-            onChunk({
-              type: 'chunk',
-              content: chunk
-            });
-            
-            // Tạm dừng một chút để giả lập stream
-            await new Promise(resolve => setTimeout(resolve, 50));
-          }
-          
-          onComplete();
-          return;
+        
+        // Đợi một chút để xem có lỗi không
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        
+        // Nếu cần dùng fallback, thì break ra
+        if (useNonStreamingFallback) {
+          throw new Error('Stream không thành công, chuyển sang phương án dự phòng');
         }
         
-        throw error;
+      } catch (streamErr) {
+        console.error('❌ Lỗi khi xử lý stream, thử phương án không stream:', streamErr.message);
+        
+        try {
+          // Thử phương án không stream - gọi đến /agent/stream bình thường
+          const fallbackResponse = await this.apiClient.post('/agent/stream', {
+            text: message,
+            sessionId,
+            userId,
+          }, { timeout: 30000 });
+          
+          if (fallbackResponse.data && fallbackResponse.data.text) {
+            const responseText = fallbackResponse.data.text;
+            
+            // Giả lập stream bằng cách chia nhỏ phản hồi
+            const chunks = this._splitTextIntoChunks(responseText);
+            
+            for (const chunk of chunks) {
+              onChunk({
+                type: 'chunk',
+                content: chunk
+              });
+              
+              // Tạm dừng một chút để giả lập stream
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
+            // Lưu phản hồi vào lịch sử
+            sessions[sessionId].history.push({
+              role: 'assistant',
+              content: responseText,
+              timestamp: new Date().toISOString()
+            });
+            
+            onComplete();
+            return;
+          } else {
+            throw new Error('Không có dữ liệu từ fallback endpoint');
+          }
+        } catch (fallbackErr) {
+          console.error('❌ Lỗi khi gọi fallback endpoint:', fallbackErr.message);
+          
+          // Cuối cùng thử phương án dự phòng local
+          try {
+            const result = await this._fallbackProcessing(message, sessionId);
+            
+            // Giả lập stream bằng cách chia nhỏ phản hồi
+            const chunks = this._splitTextIntoChunks(result.response);
+            
+            for (const chunk of chunks) {
+              onChunk({
+                type: 'chunk',
+                content: chunk
+              });
+              
+              // Tạm dừng một chút để giả lập stream
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            
+            onComplete();
+            return;
+          } catch (localErr) {
+            onError(new Error('Tất cả các phương án đều thất bại: ' + localErr.message));
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Lỗi khi xử lý tin nhắn stream:', error);
