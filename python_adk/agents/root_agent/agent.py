@@ -30,12 +30,13 @@ from python_adk.shared_libraries.logger import get_logger
 from python_adk.prompt import get_agent_prompt
 
 
-class AgentType(str, Enum):
-    """Các loại agent trong hệ thống"""
-    ROOT = "root"
-    BATCUCLINH_SO = "batcuclinh_so"
-    PAYMENT = "payment"
-    USER = "user"
+# Removed duplicate AgentType definition as it's already imported from agent_types.py
+# class AgentType(str, Enum):
+#     """Các loại agent trong hệ thống"""
+#     ROOT = "root"
+#     BATCUCLINH_SO = "batcuclinh_so"
+#     PAYMENT = "payment"
+#     USER = "user"
 
 # --- Initialize Tools ---
 intent_classifier_tool = IntentClassifier()
@@ -59,7 +60,7 @@ bat_cuc_linh_so_agent = BatCucLinhSoAgent()
 
 # List of sub-agents for the Root Agent
 root_agent_sub_agents = [
-    bat_cuc_linh_so_agent,
+    bat_cuc_linh_so_agent._agent,  # Pass the underlying GeminiAgent instance
     # Removed PaymentAgent and UserAgent to fix import issues
     # payment_agent,
     # user_agent
