@@ -12,11 +12,18 @@ from typing import Dict, Optional
 
 from dotenv import load_dotenv
 import google.generativeai as genai
+from fastapi import FastAPI
 
 from python_adk.agents.root_agent.agent import AgentType
 from python_adk.registry import agent_registry
 from python_adk.shared_libraries.logger import get_logger
 
+# Khởi tạo ứng dụng FastAPI
+app = FastAPI(
+    title="Phong Thủy Số API",
+    description="API cho ứng dụng phân tích phong thủy số học",
+    version="0.1.0"
+)
 
 def configure_logging():
     """Cấu hình logging cho ứng dụng"""
@@ -143,4 +150,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()
+
+@app.get("/health")
+async def health_check():
+    """
+    Endpoint kiểm tra trạng thái hoạt động của ứng dụng.
+    Sử dụng bởi Docker healthcheck.
+    """
+    return {"status": "healthy", "version": "0.1.0"} 
