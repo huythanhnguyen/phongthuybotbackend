@@ -7,6 +7,8 @@ COPY python_adk/requirements.txt python_adk/pyproject.toml ./
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+# Đảm bảo cài đặt đúng phiên bản của Google ADK
+RUN pip install --no-cache-dir google-adk==0.2.0
 
 # Copy rest of the application
 COPY . .

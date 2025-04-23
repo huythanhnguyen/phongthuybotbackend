@@ -8,7 +8,21 @@ import abc
 from typing import Any, Dict, List, Optional, Set, Type, Union
 
 from google.adk.agents import Agent as GeminiAgent
-from google.adk.tools.agent_tool import agent_tool, agent_tool_registry
+
+# Thay đổi import để phù hợp với phiên bản mới của ADK
+try:
+    # Thử cách import mới
+    from google.adk.tools import agent_tool_registry
+    from google.adk.tools.agent_tool import AgentTool
+    
+    # Định nghĩa agent_tool để tương thích với code hiện tại
+    def agent_tool(func):
+        return agent_tool_registry.register(func)
+        
+except ImportError:
+    # Fallback về cách import cũ
+    from google.adk.tools.agent_tool import agent_tool, agent_tool_registry
+
 from google.adk.type_inference import annotate_type
 
 from python_adk.shared_libraries.logger import get_logger
