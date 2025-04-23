@@ -19,54 +19,35 @@ class ContextTracker(FunctionTool):
     
     def __init__(self):
         """Khởi tạo Context Tracker Tool"""
-        super().__init__(
-            name="context_tracker",
-            description="Theo dõi ngữ cảnh (context) của cuộc trò chuyện",
-            parameters=[
-                {
-                    "name": "action",
-                    "type": "string",
-                    "description": "Hành động cần thực hiện: update, get, clear",
-                    "required": True
-                },
-                {
-                    "name": "session_id",
-                    "type": "string",
-                    "description": "ID của phiên trò chuyện",
-                    "required": True
-                },
-                {
-                    "name": "context_data",
-                    "type": "object",
-                    "description": "Dữ liệu context cần cập nhật (chỉ cần khi action=update)",
-                    "required": False
-                },
-                {
-                    "name": "key",
-                    "type": "string",
-                    "description": "Khóa cụ thể trong context cần lấy (chỉ cần khi action=get)",
-                    "required": False
-                }
-            ],
-            returns={
-                "type": "object",
-                "description": "Kết quả của hành động",
-                "properties": {
-                    "success": {
-                        "type": "boolean",
-                        "description": "Trạng thái thành công"
-                    },
-                    "context": {
-                        "type": "object",
-                        "description": "Dữ liệu context"
-                    },
-                    "error": {
-                        "type": "string",
-                        "description": "Thông báo lỗi nếu có"
-                    }
-                }
-            }
-        )
+        # Define the function for FunctionTool signature
+        def context_tracker_function(
+            action: str,
+            session_id: str,
+            context_data: Optional[Dict[str, Any]] = None,
+            key: Optional[str] = None
+        ) -> Dict[str, Any]:
+            """
+            Theo dõi ngữ cảnh (context) của cuộc trò chuyện.
+
+            Args:
+                action: Hành động cần thực hiện: update, get, clear.
+                session_id: ID của phiên trò chuyện.
+                context_data: Dữ liệu context cần cập nhật (cho action=update).
+                key: Khóa cụ thể trong context (cho action=get).
+            Returns:
+                Dict[str, Any]: Kết quả của hành động.
+            """
+            if action == "update":
+                return self.update_context(session_id, context_data)
+            elif action == "get":
+                return self.get_context(session_id, key)
+            elif action == "clear":
+                return self.clear_context(session_id)
+            else:
+                return {"success": False, "error": f"Hành động không hợp lệ: {action}"}
+
+        # Initialize FunctionTool with only the function
+        super().__init__(func=context_tracker_function)
         
         # Lưu trữ context theo session
         self.contexts = {}
@@ -148,50 +129,3 @@ class ContextTracker(FunctionTool):
             "success": True,
             "context": {}
         }
-    
-    async def execute(self, **kwargs) -> Dict[str, Any]:
-        """Thực thi tool với tham số từ ADK
-        
-        Args:
-            **kwargs: Tham số
-            
-        Returns:
-            Dict[str, Any]: Kết quả của hành động
-        """
-        action = kwargs.get("action")
-        session_id = kwargs.get("session_id")
-        
-        if not action:
-            return {
-                "success": False,
-                "error": "Thiếu tham số action"
-            }
-        
-        if not session_id:
-            return {
-                "success": False,
-                "error": "Thiếu tham số session_id"
-            }
-        
-        # Thực hiện hành động tương ứng
-        if action == "update":
-            context_data = kwargs.get("context_data")
-            if not context_data:
-                return {
-                    "success": False,
-                    "error": "Thiếu tham số context_data cho hành động update"
-                }
-            return await self.update_context(session_id, context_data)
-        
-        elif action == "get":
-            key = kwargs.get("key")
-            return await self.get_context(session_id, key)
-        
-        elif action == "clear":
-            return await self.clear_context(session_id)
-        
-        else:
-            return {
-                "success": False,
-                "error": f"Hành động không hợp lệ: {action}"
-            }
