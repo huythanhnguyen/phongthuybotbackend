@@ -8,7 +8,7 @@ import abc
 from typing import Any, Dict, List, Optional, Set, Type, Union
 
 from google.adk.agents import Agent as GeminiAgent
-from google.adk.tools import agent_tool_registry
+from google.adk.tools.agent_tool import agent_tool, agent_tool_registry
 from google.adk.type_inference import annotate_type
 
 from python_adk.shared_libraries.logger import get_logger
